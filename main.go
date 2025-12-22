@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"time"
 
 	"github.com/energye/systray"
 	"github.com/wailsapp/wails/v2"
@@ -176,6 +177,13 @@ func main() {
 				systray.SetOnDClick(func(menu systray.IMenu) {
 					runtime.WindowShow(app.ctx)
 				})
+
+				if app.CurrentLanguage != "" {
+					go func() {
+						time.Sleep(500 * time.Millisecond)
+						UpdateTrayMenu(app.CurrentLanguage)
+					}()
+				}
 			}, func() {
 				// Cleanup if needed
 			})

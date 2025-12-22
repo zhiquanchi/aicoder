@@ -15,7 +15,8 @@ import (
 
 // App struct
 type App struct {
-	ctx context.Context
+	ctx             context.Context
+	CurrentLanguage string
 }
 
 var OnConfigChanged func(AppConfig)
@@ -49,6 +50,7 @@ func (a *App) startup(ctx context.Context) {
 }
 
 func (a *App) SetLanguage(lang string) {
+	a.CurrentLanguage = lang
 	if UpdateTrayMenu != nil {
 		UpdateTrayMenu(lang)
 	}
