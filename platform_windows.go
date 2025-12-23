@@ -5,7 +5,6 @@ package main
 import (
 	"os"
 	"os/exec"
-	"strings"
 	"syscall"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -163,12 +162,18 @@ func (a *App) syncToSystemEnv(config AppConfig) {
 
 	baseUrl := getBaseUrl(selectedModel)
 
-	// Set persistent environment variables on Windows
-	cmd1 := exec.Command("setx", "ANTHROPIC_AUTH_TOKEN", selectedModel.ApiKey)
-	cmd1.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	cmd1.Run()
+	// Set environment variables for the current process immediately
+	os.Setenv("ANTHROPIC_AUTH_TOKEN", selectedModel.ApiKey)
+	os.Setenv("ANTHROPIC_BASE_URL", baseUrl)
 
-	cmd2 := exec.Command("setx", "ANTHROPIC_BASE_URL", baseUrl)
-	cmd2.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	cmd2.Run()
+	// Set persistent environment variables on Windows in a goroutine because setx is slow
+	go func() {
+		cmd1 := exec.Command("setx", "ANTHROPIC_AUTH_TOKEN", selectedModel.ApiKey)
+		cmd1.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		cmd1.Run()
+
+		cmd2 := exec.Command("setx", "ANTHROPIC_BASE_URL", baseUrl)
+		cmd2.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		cmd2.Run()
+	}()
 }

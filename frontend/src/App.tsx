@@ -7,7 +7,8 @@ import {main} from "../wailsjs/go/models";
 const subscriptionUrls: {[key: string]: string} = {
     "glm": "https://bigmodel.cn/glm-coding",
     "kimi": "https://www.kimi.com/membership/pricing?from=upgrade_plan&track_id=1d2446f5-f45f-4ae5-961e-c0afe936a115",
-    "doubao": "https://www.volcengine.com/activity/codingplan"
+    "doubao": "https://www.volcengine.com/activity/codingplan",
+    "minimax": "https://platform.minimaxi.com/user-center/payment/coding-plan"
 };
 
 const translations: any = {

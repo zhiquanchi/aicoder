@@ -127,6 +127,15 @@ func (a *App) syncToClaudeSettings(config AppConfig) error {
 		env["ANTHROPIC_DEFAULT_OPUS_MODEL"] = "doubao-seed-code-preview-latest"
 		env["ANTHROPIC_DEFAULT_SONNET_MODEL"] = "doubao-seed-code-preview-latest"
 		env["ANTHROPIC_MODEL"] = "doubao-seed-code-preview-latest"
+	case "minimax":
+		env["ANTHROPIC_BASE_URL"] = "https://api.minimaxi.com/anthropic"
+		env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = "MiniMax-M2"
+		env["ANTHROPIC_DEFAULT_OPUS_MODEL"] = "MiniMax-M2"
+		env["ANTHROPIC_DEFAULT_SONNET_MODEL"] = "MiniMax-M2"
+		env["ANTHROPIC_MODEL"] = "MiniMax-M2"
+		env["ANTHROPIC_SMALL_FAST_MODEL"] = "MiniMax-M2"
+		env["API_TIMEOUT_MS"] = "3000000"
+		env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = "1"
 	default:
 		env["ANTHROPIC_BASE_URL"] = selectedModel.ModelUrl
 		env["ANTHROPIC_MODEL"] = selectedModel.ModelName
@@ -177,6 +186,8 @@ func getBaseUrl(selectedModel *ModelConfig) string {
 		baseUrl = "https://open.bigmodel.cn/api/anthropic"
 	case "doubao":
 		baseUrl = "https://ark.cn-beijing.volces.com/api/coding"
+	case "minimax":
+		baseUrl = "https://api.minimaxi.com/anthropic"
 	}
 	return baseUrl
 }
@@ -221,6 +232,11 @@ func (a *App) LoadConfig() (AppConfig, error) {
 					ApiKey:    "your_doubao_api_key_here",
 				},
 				{
+					ModelName: "MiniMax",
+					ModelUrl:  "https://api.minimaxi.com/anthropic",
+					ApiKey:    "your_minimax_api_key_here",
+				},
+				{
 					ModelName: "Custom",
 					ModelUrl:  "",
 					ApiKey:    "",
@@ -257,6 +273,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 
 	// Ensure ModelUrls are populated and migrate names for existing configs
 	hasCustom := false
+	hasMiniMax := false
 	for i := range config.Models {
 		// Migrate to "GLM" for display
 		lowerName := strings.ToLower(config.Models[i].ModelName)
@@ -264,6 +281,14 @@ func (a *App) LoadConfig() (AppConfig, error) {
 			config.Models[i].ModelName = "GLM"
 			if strings.ToLower(config.CurrentModel) == "glm" || strings.ToLower(config.CurrentModel) == "glm-4.7" {
 				config.CurrentModel = "GLM"
+			}
+		}
+
+		if lowerName == "minimax" {
+			hasMiniMax = true
+			config.Models[i].ModelName = "MiniMax"
+			if strings.ToLower(config.CurrentModel) == "minimax" {
+				config.CurrentModel = "MiniMax"
 			}
 		}
 
@@ -279,8 +304,35 @@ func (a *App) LoadConfig() (AppConfig, error) {
 				config.Models[i].ModelUrl = "https://api.kimi.com/coding"
 			case "doubao":
 				config.Models[i].ModelUrl = "https://ark.cn-beijing.volces.com/api/coding"
+			case "minimax":
+				config.Models[i].ModelUrl = "https://api.minimaxi.com/anthropic"
 			}
 		}
+	}
+
+	if !hasMiniMax {
+		// Insert MiniMax before Custom if Custom exists, otherwise append
+		newModels := []ModelConfig{}
+		inserted := false
+		for _, m := range config.Models {
+			if (m.IsCustom || m.ModelName == "Custom") && !inserted {
+				newModels = append(newModels, ModelConfig{
+					ModelName: "MiniMax",
+					ModelUrl:  "https://api.minimaxi.com/anthropic",
+					ApiKey:    "your_minimax_api_key_here",
+				})
+				inserted = true
+			}
+			newModels = append(newModels, m)
+		}
+		if !inserted {
+			newModels = append(newModels, ModelConfig{
+				ModelName: "MiniMax",
+				ModelUrl:  "https://api.minimaxi.com/anthropic",
+				ApiKey:    "your_minimax_api_key_here",
+			})
+		}
+		config.Models = newModels
 	}
 
 	if !hasCustom {
