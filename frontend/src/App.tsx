@@ -12,7 +12,7 @@ const subscriptionUrls: {[key: string]: string} = {
     "minimax": "https://platform.minimaxi.com/user-center/payment/coding-plan"
 };
 
-const APP_VERSION = "1.2.2";
+const APP_VERSION = "1.2.2.2";
 
 const translations: any = {
     "en": {
@@ -312,7 +312,7 @@ function App() {
         // Environment Check Logic
         const logHandler = (msg: string) => setEnvLog(msg);
         const doneHandler = () => {
-            ResizeWindow(792, 440);
+            ResizeWindow(792, 480);
             setIsLoading(false);
         };
 
