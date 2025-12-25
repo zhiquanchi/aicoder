@@ -324,7 +324,7 @@ function App() {
         // Environment Check Logic
         const logHandler = (msg: string) => setEnvLog(msg);
         const doneHandler = () => {
-            ResizeWindow(792, 480);
+            ResizeWindow(792, 460);
             setIsLoading(false);
         };
 
@@ -741,8 +741,8 @@ function App() {
             <div className="main-content" style={{overflowY: currentModelConfig.is_custom ? 'auto' : 'hidden'}}>
                 <div style={{
                     backgroundColor: '#eff6ff', 
-                    margin: '-5px 10px 0 10px', 
-                    padding: '25px 10px', 
+                    margin: '10px 10px 0 10px', 
+                    padding: '15px 10px', 
                     borderRadius: '12px',
                     border: '1px solid rgba(59, 130, 246, 0.1)'
                 }}>
@@ -783,8 +783,8 @@ function App() {
 
                 <div style={{
                     backgroundColor: '#eff6ff', 
-                    margin: '15px 10px 0 10px', 
-                    padding: '15px 10px', 
+                    margin: '10px 10px 0 10px', 
+                    padding: '10px', 
                     borderRadius: '12px',
                     border: '1px solid rgba(59, 130, 246, 0.1)'
                 }}>
@@ -926,7 +926,7 @@ function App() {
                                             
                                                                                                                                                                                                         </div>
                                             
-                                                                                                                                                                                                                                    <button className="btn-launch" style={{marginTop: '10px'}} onClick={() => {
+                                                                                                                                                                                                                                    <button className="btn-launch" style={{marginTop: '5px'}} onClick={() => {
                                                                                                                                                                                                                                                     
                                                                                                                                                                                                                                         if (!currentProject.path || currentProject.path.trim() === "") {
                                                                                                                                                                                                                                                     
