@@ -12,7 +12,7 @@ const subscriptionUrls: {[key: string]: string} = {
     "minimax": "https://platform.minimaxi.com/user-center/payment/coding-plan"
 };
 
-const APP_VERSION = "1.2.2.2";
+const APP_VERSION = "1.3.0.1";
 
 const translations: any = {
     "en": {
@@ -1187,7 +1187,46 @@ function App() {
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{width: '320px'}}>
                         <button className="modal-close" onClick={() => setShowUpdateModal(false)}>&times;</button>
                         <h3 style={{marginTop: 0, color: '#fb923c'}}>{t("checkUpdate")}</h3>
-...
+                        <div style={{margin: '20px 0', fontSize: '1rem'}}>
+                            {updateResult?.has_update ? (
+                                <div style={{color: '#10b981', fontWeight: 600}}>
+                                    {t("updateAvailable")} {updateResult.latest_version}
+                                </div>
+                            ) : (
+                                <div style={{color: '#6b7280'}}>
+                                    {t("noUpdate")}
+                                </div>
+                            )}
+                        </div>
+                        <div style={{display: 'flex', gap: '10px'}}>
+                            {updateResult?.has_update && (
+                                <button 
+                                    className="btn-primary" 
+                                    style={{flex: 1}}
+                                    onClick={() => {
+                                        BrowserOpenURL("https://github.com/RapidAI/cceasy/releases");
+                                        setShowUpdateModal(false);
+                                    }}
+                                >
+                                    {t("downloadNow")}
+                                </button>
+                            )}
+                            <button 
+                                className="btn-primary" 
+                                style={{flex: 1, backgroundColor: updateResult?.has_update ? '#6b7280' : '#fb923c'}}
+                                onClick={() => setShowUpdateModal(false)}
+                            >
+                                {updateResult?.has_update ? t("hide") : "OK"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showAbout && (
+                <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowAbout(false); }}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <button className="modal-close" onClick={() => setShowAbout(false)}>&times;</button>
                         <h3 style={{marginTop: 0, color: '#fb923c'}}>Claude Code Easy Suite</h3>
                         <p style={{color: '#6b7280', margin: '5px 0'}}>Version V{APP_VERSION} Beta (Build {buildNumber})</p>
                         <p style={{color: '#6b7280', margin: '5px 0'}}>Author: Dr. Daniel</p>
