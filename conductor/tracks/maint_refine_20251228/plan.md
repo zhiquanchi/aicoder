@@ -6,7 +6,7 @@ Goal: Ensure the application correctly detects and configures the latest `claude
 - [x] Task: Audit environment detection logic for Node.js and `@anthropic-ai/claude-code`. 61b61e4
 - [x] Task: Refactor: Unify Node.js version constant across platforms (Target: 22.14.0). 0e8012f
 - [x] Task: Implement Feature: Add version check and auto-update logic for `claude-code`. 7681e94
-- [ ] Task: Update model synchronization to support any new parameters in `claude-code` v0.x.
+- [x] Task: Update model synchronization to support any new parameters in `claude-code` v0.x. dc32cc6
 - [ ] Task: Write Tests: Verification of `~/.claude/settings.json` and `.claude.json` updates.
 - [ ] Task: Implement Feature: Robust file system watchers for configuration changes.
 - [ ] Task: Conductor - User Manual Verification 'Environment & CLI Synchronization' (Protocol in workflow.md)
