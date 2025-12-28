@@ -22,7 +22,7 @@ Goal: Polishing the multi-project tabbed interface.
 ## Phase 3: Stability & Bug Fixes
 Goal: Address known issues and improve overall robustness.
 
-- [ ] Task: Fix Single Instance Lock issues on Darwin (macOS).
-- [ ] Task: Improve Tray Menu reliability and responsiveness.
-- [ ] Task: Write Tests: Integration tests for the "Launch Claude Code" trigger.
-- [ ] Task: Conductor - User Manual Verification 'Stability & Bug Fixes' (Protocol in workflow.md)
+- [x] Task: Fix Single Instance Lock issues on Darwin (macOS). 8d343fd
+- [x] Task: Improve Tray Menu reliability and responsiveness. eea70c6
+- [x] Task: Write Tests: Integration tests for the "Launch Claude Code" trigger. 68af8ba
+- [~] Task: Conductor - User Manual Verification 'Stability & Bug Fixes' (Protocol in workflow.md)
