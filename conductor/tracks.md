@@ -4,5 +4,10 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [ ] Track: Maintenance & Refinement
+## [x] Track: Maintenance & Refinement
 *Link: [./conductor/tracks/maint_refine_20251228/](./conductor/tracks/maint_refine_20251228/)*
+
+---
+
+## [ ] Track: Increase Interface Height
+*Link: [./conductor/tracks/inc_height_20251228/](./conductor/tracks/inc_height_20251228/)*
