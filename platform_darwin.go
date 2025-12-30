@@ -297,36 +297,22 @@ func (a *App) restartApp() {
 	wails_runtime.Quit(a.ctx)
 }
 
-func (a *App) LaunchClaude(yoloMode bool, projectDir string) {
-	a.log("Launching Claude Code...")
-	config, err := a.LoadConfig()
-	if err != nil {
-		a.log("Error loading config: " + err.Error())
-		return
-	}
-	
-	var selectedModel *ModelConfig
-	for _, m := range config.Claude.Models {
-		if m.ModelName == config.Claude.CurrentModel {
-			selectedModel = &m
-			break
+func (a *App) platformLaunch(binaryName string, yoloMode bool, projectDir string, env map[string]string) {
+	a.log(fmt.Sprintf("Launching %s...", binaryName))
+
+	binaryPath, _ := exec.LookPath(binaryName)
+	if binaryPath == "" {
+		// Try fallback to local bin if it's claude (existing pattern)
+		if binaryName == "claude" {
+			home, _ := os.UserHomeDir()
+			binaryPath = filepath.Join(home, ".cceasy", "node", "bin", "claude")
+		} else {
+			a.log(fmt.Sprintf("Tool %s not found in PATH", binaryName))
+			return
 		}
 	}
+	a.log("Using binary at: " + binaryPath)
 
-	if selectedModel == nil {
-		a.log("No model selected or model not found in config.")
-		return
-	}
-
-	baseUrl := getBaseUrl(selectedModel)
-	claudePath, _ := exec.LookPath("claude")
-	if claudePath == "" {
-		// Try fallback to local bin
-		home, _ := os.UserHomeDir()
-		claudePath = filepath.Join(home, ".cceasy", "node", "bin", "claude")
-	}
-	a.log("Using claude at: " + claudePath)
-	
 	// Prepare the launch script
 	home, _ := os.UserHomeDir()
 	localBinDir := filepath.Join(home, ".cceasy", "node", "bin")
@@ -337,53 +323,44 @@ func (a *App) LaunchClaude(yoloMode bool, projectDir string) {
 	}
 	launchScriptPath := filepath.Join(scriptsDir, "launch.sh")
 
-	// Construct script content
 	var sb strings.Builder
 	sb.WriteString("#!/bin/bash\n")
 	// Export local bin to PATH
 	sb.WriteString(fmt.Sprintf("export PATH=\"%s:$PATH\"\n", localBinDir))
-	// Export Auth Tokens
-	sb.WriteString(fmt.Sprintf("export ANTHROPIC_AUTH_TOKEN=\"%s\"\n", selectedModel.ApiKey))
-	sb.WriteString(fmt.Sprintf("export ANTHROPIC_API_KEY=\"%s\"\n", selectedModel.ApiKey))
-	sb.WriteString(fmt.Sprintf("export ANTHROPIC_BASE_URL=\"%s\"\n", baseUrl))
-	
+
+	// Export env variables
+	for k, v := range env {
+		sb.WriteString(fmt.Sprintf("export %s=\"%s\"\n", k, v))
+	}
+
 	// Navigate to project directory
 	if projectDir != "" {
-		// Escape quotes in project path for bash
 		safeProjectDir := strings.ReplaceAll(projectDir, "\"", "\\\"")
 		sb.WriteString(fmt.Sprintf("cd \"%s\" || exit\n", safeProjectDir))
 	}
 
-	// Clear screen to hide the command invocation
 	sb.WriteString("clear\n")
-	
-	// Execute claude (using exec to replace the shell process)
-	sb.WriteString(fmt.Sprintf("exec \"%s\"", claudePath))
-	if yoloMode {
+	sb.WriteString(fmt.Sprintf("exec \"%s\"", binaryPath))
+	if binaryName == "claude" && yoloMode {
 		sb.WriteString(" --dangerously-skip-permissions")
 	}
 	sb.WriteString("\n")
 
-	// Write script to file
 	if err := os.WriteFile(launchScriptPath, []byte(sb.String()), 0700); err != nil {
 		a.log("Failed to write launch script: " + err.Error())
 		return
 	}
 
-	// Launch Terminal via AppleScript
-	// We run the script file. We quote the path in case of spaces in home dir.
-	// We escape double quotes for AppleScript string logic.
 	safeLaunchPath := strings.ReplaceAll(launchScriptPath, "\"", "\\\"")
-	
-	script := fmt.Sprintf(`try
+	appleScript := fmt.Sprintf(`try
 	tell application "Terminal" to do script "\"%s\""
 	tell application "Terminal" to activate
 on error errMsg
 	display dialog "Failed to launch Terminal: " & errMsg
 end try`, safeLaunchPath)
-	
+
 	a.log("Executing AppleScript...")
-	cmd := exec.Command("osascript", "-e", script)
+	cmd := exec.Command("osascript", "-e", appleScript)
 	if err := cmd.Start(); err != nil {
 		a.log("Failed to launch Terminal: " + err.Error())
 	}

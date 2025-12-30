@@ -362,21 +362,32 @@ func (a *App) restartApp() {
 	}
 }
 
-func (a *App) LaunchClaude(yoloMode bool, projectDir string) {
-	args := []string{"/c", "start", "cmd.exe", "/k", "claude"}
-	if yoloMode {
-		args = append(args, "--dangerously-skip-permissions")
+func (a *App) platformLaunch(binaryName string, yoloMode bool, projectDir string, env map[string]string) {
+	binaryPath, _ := exec.LookPath(binaryName)
+	if binaryPath == "" {
+		if binaryName == "claude" {
+			home, _ := os.UserHomeDir()
+			binaryPath = filepath.Join(home, ".cceasy", "node", "claude.cmd")
+		} else {
+			a.log(fmt.Sprintf("Tool %s not found in PATH", binaryName))
+			return
+		}
 	}
-	
-	cmd := exec.Command("cmd.exe", args...)
-	if projectDir != "" {
-		cmd.Dir = projectDir
+
+	for k, v := range env {
+		os.Setenv(k, v)
 	}
-	
-	cmd.Env = os.Environ()
-	
-	if err := cmd.Start(); err != nil {
-		a.log("Failed to launch Claude: " + err.Error())
+
+	args := []string{"/c", "start", "cmd", "/k", fmt.Sprintf("cd /d %s && %s", projectDir, binaryPath)}
+	if binaryName == "claude" && yoloMode {
+		args = []string{"/c", "start", "cmd", "/k", fmt.Sprintf("cd /d %s && %s --yolo", projectDir, binaryPath)}
+	}
+
+	cmd := exec.Command("cmd", args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	err := cmd.Run()
+	if err != nil {
+		a.log("Error launching tool: " + err.Error())
 	}
 }
 

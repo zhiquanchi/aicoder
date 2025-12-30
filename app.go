@@ -154,6 +154,11 @@ func (a *App) SelectProjectDir() string {
 	return selection
 }
 
+func (a *App) GetUserHomeDir() string {
+	home, _ := os.UserHomeDir()
+	return home
+}
+
 func (a *App) GetCurrentProjectPath() string {
 	config, err := a.LoadConfig()
 	if err != nil {
@@ -290,6 +295,76 @@ func getBaseUrl(selectedModel *ModelConfig) string {
 		baseUrl = "https://api.minimaxi.com/anthropic"
 	}
 	return baseUrl
+}
+
+func (a *App) LaunchTool(toolName string, yoloMode bool, projectDir string) {
+	a.log(fmt.Sprintf("Launching %s...", toolName))
+	
+	config, err := a.LoadConfig()
+	if err != nil {
+		a.log("Error loading config: " + err.Error())
+		return
+	}
+
+	var toolCfg ToolConfig
+	var envKey, envBaseUrl string
+	var binaryName string
+
+	switch strings.ToLower(toolName) {
+	case "claude":
+		toolCfg = config.Claude
+		envKey = "ANTHROPIC_API_KEY"
+		envBaseUrl = "ANTHROPIC_BASE_URL"
+		binaryName = "claude"
+	case "gemini":
+		toolCfg = config.Gemini
+		envKey = "GEMINI_API_KEY"
+		envBaseUrl = "GEMINI_BASE_URL"
+		binaryName = "gemini"
+	case "codex":
+		toolCfg = config.Codex
+		envKey = "OPENAI_API_KEY"
+		envBaseUrl = "OPENAI_BASE_URL"
+		binaryName = "codex"
+	default:
+		a.log("Unknown tool: " + toolName)
+		return
+	}
+
+	var selectedModel *ModelConfig
+	for _, m := range toolCfg.Models {
+		if m.ModelName == toolCfg.CurrentModel {
+			selectedModel = &m
+			break
+		}
+	}
+
+	if selectedModel == nil {
+		a.log("No model selected.")
+		return
+	}
+
+	// Set environment variables for the current process
+	os.Setenv(envKey, selectedModel.ApiKey)
+	if selectedModel.ModelUrl != "" {
+		os.Setenv(envBaseUrl, selectedModel.ModelUrl)
+	}
+	
+	env := make(map[string]string)
+	env[envKey] = selectedModel.ApiKey
+	if selectedModel.ModelUrl != "" {
+		env[envBaseUrl] = selectedModel.ModelUrl
+	}
+
+	// For Claude specifically, we also need ANTHROPIC_AUTH_TOKEN and legacy sync
+	if strings.ToLower(toolName) == "claude" {
+		os.Setenv("ANTHROPIC_AUTH_TOKEN", selectedModel.ApiKey)
+		env["ANTHROPIC_AUTH_TOKEN"] = selectedModel.ApiKey
+		a.syncToClaudeSettings(config)
+	}
+
+	// Platform specific launch
+	a.platformLaunch(binaryName, yoloMode, projectDir, env)
 }
 
 func (a *App) log(message string) {

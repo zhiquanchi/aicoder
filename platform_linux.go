@@ -258,144 +258,58 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func (a *App) LaunchClaude(yoloMode bool, projectDir string) {
-	a.log("Launching Claude Code...")
-	fmt.Printf("Launching Claude Code: yoloMode=%v, projectDir=%s\n", yoloMode, projectDir)
-
-	config, err := a.LoadConfig()
-	if err != nil {
-		a.log("Error loading config: " + err.Error())
-		return
+func (a *App) platformLaunch(binaryName string, yoloMode bool, projectDir string, env map[string]string) {
+	a.log(fmt.Sprintf("Launching %s...", binaryName))
+	
+	binaryPath, _ := exec.LookPath(binaryName)
+	if binaryPath == "" {
+		if binaryName == "claude" {
+			home, _ := os.UserHomeDir()
+			binaryPath = filepath.Join(home, ".cceasy", "node", "bin", "claude")
+		} else {
+			a.log(fmt.Sprintf("Tool %s not found in PATH", binaryName))
+			return
+		}
 	}
 
-	var selectedModel *ModelConfig
-	for _, m := range config.Claude.Models {
-		if m.ModelName == config.Claude.CurrentModel {
-			selectedModel = &m
+	// Try common terminals
+	terminals := []string{"gnome-terminal", "konsole", "xterm", "xfce4-terminal"}
+	var terminal string
+	for _, t := range terminals {
+		if path, err := exec.LookPath(t); err == nil {
+			terminal = path
 			break
 		}
 	}
 
-	if selectedModel == nil {
-		a.log("No model selected.")
+	if terminal == "" {
+		a.log("No terminal emulator found.")
 		return
 	}
 
-	baseUrl := getBaseUrl(selectedModel)
-	
-	home, _ := os.UserHomeDir()
-	localBinDir := filepath.Join(home, ".cceasy", "node", "bin")
-
-	// Search for Claude
-	claudePath, _ := exec.LookPath("claude")
-	if claudePath == "" {
-		// 1. Try local bin
-		localClaude := filepath.Join(localBinDir, "claude")
-		if _, err := os.Stat(localClaude); err == nil {
-			claudePath = localClaude
-		} else {
-			// 2. Try global npm prefix
-			npmExec, _ := exec.LookPath("npm")
-			if npmExec == "" {
-				localNpmPath := filepath.Join(localBinDir, "npm")
-				if _, err := os.Stat(localNpmPath); err == nil {
-					npmExec = localNpmPath
-				}
-			}
-			
-			if npmExec != "" {
-				prefixCmd := exec.Command(npmExec, "config", "get", "prefix")
-				if out, err := prefixCmd.Output(); err == nil {
-					prefix := strings.TrimSpace(string(out))
-					globalClaude := filepath.Join(prefix, "bin", "claude")
-					if _, err := os.Stat(globalClaude); err == nil {
-						claudePath = globalClaude
-					}
-				}
-			}
-		}
+	exports := ""
+	for k, v := range env {
+		exports += fmt.Sprintf("export %s=\"%s\"; ", k, v)
 	}
 
-	scriptsDir := filepath.Join(home, ".cceasy", "scripts")
-	os.MkdirAll(scriptsDir, 0755)
-	launchScriptPath := filepath.Join(scriptsDir, "launch.sh")
-
-	var sb strings.Builder
-	sb.WriteString("#!/bin/bash\n")
-	
-	// Add both local and global bin to PATH in script
-	pathDirs := []string{localBinDir}
-	if claudePath != "" {
-		pathDirs = append(pathDirs, filepath.Dir(claudePath))
+	cmdStr := fmt.Sprintf("cd %s && %s%s", projectDir, exports, binaryPath)
+	if binaryName == "claude" && yoloMode {
+		cmdStr = fmt.Sprintf("cd %s && %s%s --yolo", projectDir, exports, binaryPath)
 	}
-	sb.WriteString(fmt.Sprintf("export PATH=\"%s:$PATH\"\n", strings.Join(pathDirs, ":")))
-	
-	sb.WriteString(fmt.Sprintf("export ANTHROPIC_AUTH_TOKEN=\"%s\"\n", selectedModel.ApiKey))
-	sb.WriteString(fmt.Sprintf("export ANTHROPIC_API_KEY=\"%s\"\n", selectedModel.ApiKey))
-	sb.WriteString(fmt.Sprintf("export ANTHROPIC_BASE_URL=\"%s\"\n", baseUrl))
+	cmdStr += "; echo 'Press any key to exit...'; read -n 1"
 
-	if projectDir != "" {
-		sb.WriteString(fmt.Sprintf("cd \"%s\" || exit\n", projectDir))
-	}
-
-	sb.WriteString("clear\n")
-
-	claudeArgs := ""
-	if yoloMode {
-		claudeArgs = " --dangerously-skip-permissions"
-	}
-
-	if claudePath != "" {
-		sb.WriteString(fmt.Sprintf("if [ -f \"%s\" ]; then\n", claudePath))
-		sb.WriteString(fmt.Sprintf("  exec \"%s\"%s\n", claudePath, claudeArgs))
-		sb.WriteString("elif command -v claude >/dev/null 2>&1; then\n")
-		sb.WriteString(fmt.Sprintf("  exec claude%s\n", claudeArgs))
+	var cmd *exec.Cmd
+	if strings.Contains(terminal, "gnome-terminal") {
+		cmd = exec.Command(terminal, "--", "bash", "-c", cmdStr)
+	} else if strings.Contains(terminal, "konsole") {
+		cmd = exec.Command(terminal, "-e", "bash", "-c", cmdStr)
 	} else {
-		sb.WriteString("if command -v claude >/dev/null 2>&1; then\n")
-		sb.WriteString(fmt.Sprintf("  exec claude%s\n", claudeArgs))
+		cmd = exec.Command(terminal, "-e", "bash", "-c", cmdStr)
 	}
 
-	sb.WriteString("elif command -v npx >/dev/null 2>&1; then\n")
-	sb.WriteString("  echo \"claude command not found, trying npx...\"\n")
-	sb.WriteString(fmt.Sprintf("  exec npx @anthropic-ai/claude-code%s\n", claudeArgs))
-	sb.WriteString("else\n")
-	sb.WriteString("  echo \"Error: Claude Code ('claude' command) not found and 'npx' is not available.\"\n")
-	sb.WriteString("  echo \"Please make sure Node.js and Claude Code are installed correctly.\"\n")
-	sb.WriteString("  read -p \"Press Enter to close...\"\n")
-	sb.WriteString("fi\n")
-
-	if err := os.WriteFile(launchScriptPath, []byte(sb.String()), 0700); err != nil {
-		a.log("Failed to write launch script: " + err.Error())
-		return
-	}
-
-	// Terminal fallbacks
-	terminals := []struct {
-		name string
-		args []string
-	}{
-		{"x-terminal-emulator", []string{"-e", launchScriptPath}},
-		{"gnome-terminal", []string{"--", launchScriptPath}},
-		{"konsole", []string{"--", launchScriptPath}},
-		{"xfce4-terminal", []string{"-e", launchScriptPath}},
-		{"lxterminal", []string{"-e", launchScriptPath}},
-		{"mate-terminal", []string{"-e", launchScriptPath}},
-		{"xterm", []string{"-e", launchScriptPath}},
-	}
-
-	launched := false
-	for _, t := range terminals {
-		if _, err := exec.LookPath(t.name); err == nil {
-			a.log("Attempting to launch via " + t.name)
-			if err := exec.Command(t.name, t.args...).Start(); err == nil {
-				launched = true
-				break
-			}
-		}
-	}
-
-	if !launched {
-		a.log("Failed to launch any terminal emulator.")
+	err := cmd.Start()
+	if err != nil {
+		a.log("Error launching terminal: " + err.Error())
 	}
 }
 

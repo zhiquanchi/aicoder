@@ -26,7 +26,7 @@ func setupTray(app *App, appOptions *options.App) {
 		go systray.Run(func() {
 			systray.SetIcon(icon)
 			// Do not set title for macOS as requested
-			systray.SetTooltip("Claude Config Manager")
+			systray.SetTooltip("AICoder Dashboard")
 			
 			// Ensure clicking the icon shows the menu immediately on macOS
 			systray.CreateMenu()
@@ -102,7 +102,7 @@ func setupTray(app *App, appOptions *options.App) {
 			mLaunch.Click(func() {
 				go func() {
 					path := app.GetCurrentProjectPath()
-					app.LaunchClaude(false, path)
+					app.LaunchTool("claude", false, path)
 				}()
 			})
 

@@ -22,8 +22,8 @@ func setupTray(app *App, appOptions *options.App) {
 			
 			systray.Run(func() {
 				systray.SetIcon(icon)
-				systray.SetTitle("Claude Config Manager")
-				systray.SetTooltip("Claude Config Manager")
+				systray.SetTitle("AICoder")
+				systray.SetTooltip("AICoder Dashboard")
 				systray.SetOnDClick(func(menu systray.IMenu) {
 					go func() {
 						runtime.WindowShow(app.ctx)
@@ -104,7 +104,7 @@ func setupTray(app *App, appOptions *options.App) {
 			mLaunch.Click(func() {
 				go func() {
 					path := app.GetCurrentProjectPath()
-					app.LaunchClaude(false, path)
+					app.LaunchTool("claude", false, path)
 				}()
 			})
 

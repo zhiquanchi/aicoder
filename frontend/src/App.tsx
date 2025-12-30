@@ -2,7 +2,7 @@ import {useEffect, useState, useRef} from 'react';
 import './App.css';
 import {buildNumber} from './version';
 import appIcon from './assets/images/appicon.png';
-import {LoadConfig, SaveConfig, CheckEnvironment, ResizeWindow, LaunchClaude, SelectProjectDir, SetLanguage, GetUserHomeDir, CheckUpdate, RecoverCC, ShowMessage} from "../wailsjs/go/main/App";
+import {CheckToolsStatus, InstallTool, LoadConfig, SaveConfig, CheckEnvironment, ResizeWindow, LaunchTool, SelectProjectDir, SetLanguage, GetUserHomeDir, CheckUpdate, RecoverCC, ShowMessage} from "../wailsjs/go/main/App";
 import {WindowHide, EventsOn, EventsOff, BrowserOpenURL, ClipboardGetText, Quit} from "../wailsjs/runtime";
 import {main} from "../wailsjs/go/models";
 
@@ -354,6 +354,190 @@ const translations: any = {
     }
 };
 
+interface ToolConfigurationProps {
+    toolName: string;
+    toolCfg: any;
+    activeTab: number;
+    setActiveTab: (idx: number) => void;
+    showModelSettings: boolean;
+    setShowModelSettings: (show: boolean) => void;
+    handleModelSwitch: (name: string) => void;
+    handleApiKeyChange: (key: string) => void;
+    handleModelUrlChange: (url: string) => void;
+    save: () => void;
+    t: (key: string) => string;
+    ClipboardGetText: () => Promise<string>;
+}
+
+const ToolConfiguration = ({
+    toolName, toolCfg, activeTab, setActiveTab, showModelSettings, setShowModelSettings,
+    handleModelSwitch, handleApiKeyChange, handleModelUrlChange, save, t, ClipboardGetText
+}: ToolConfigurationProps) => {
+    const currentModelConfig = toolCfg.models[activeTab] || { model_name: "", api_key: "", model_url: "" };
+
+    return (
+        <>
+            <div style={{
+                backgroundColor: '#fffbf5', 
+                padding: '15px', 
+                borderRadius: '12px',
+                border: '1px solid rgba(251, 146, 60, 0.1)',
+                marginBottom: '15px'
+            }}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+                    <h3 style={{fontSize: '0.9rem', color: '#fb923c', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0}}>Models</h3>
+                    <button 
+                        className="btn-link" 
+                        onClick={() => setShowModelSettings(!showModelSettings)}
+                        style={{borderColor: '#fb923c', color: '#fb923c'}}
+                    >
+                        {showModelSettings ? 'Hide Config' : 'Edit Config'}
+                    </button>
+                </div>
+                <div className="model-switcher" style={{flexWrap: 'wrap'}}>
+                    {toolCfg.models.map((model: any) => (
+                        <button
+                            key={model.model_name}
+                            className={`model-btn ${toolCfg.current_model === model.model_name ? 'selected' : ''}`}
+                            onClick={() => handleModelSwitch(model.model_name)}
+                            style={{
+                                minWidth: '120px',
+                                borderBottom: (model.api_key && model.api_key.trim() !== "") ? '3px solid #fb923c' : '1px solid var(--border-color)'
+                            }}
+                        >
+                            {model.model_name}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {showModelSettings && (
+                <div style={{
+                    backgroundColor: '#fff', 
+                    padding: '15px', 
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '15px'
+                }}>
+                    <div className="tabs" style={{marginBottom: '15px'}}>
+                        {toolCfg.models.map((model: any, index: number) => (
+                            <button
+                                key={index}
+                                className={`tab-button ${activeTab === index ? 'active' : ''}`}
+                                onClick={() => setActiveTab(index)}
+                            >
+                                {model.model_name}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">{t("apiKey")}</label>
+                        <div style={{display: 'flex', gap: '10px'}}>
+                            <input 
+                                type="password" 
+                                className="form-input"
+                                value={currentModelConfig.api_key} 
+                                onChange={(e) => handleApiKeyChange(e.target.value)}
+                                placeholder={t("enterKey")}
+                            />
+                            <button className="btn-subscribe" onClick={async () => {
+                                const text = await ClipboardGetText();
+                                if (text) handleApiKeyChange(text);
+                            }}>📋</button>
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">{t("apiEndpoint")}</label>
+                        <input 
+                            type="text" 
+                            className="form-input"
+                            value={currentModelConfig.model_url} 
+                            onChange={(e) => handleModelUrlChange(e.target.value)}
+                            placeholder="https://api.example.com/v1"
+                        />
+                    </div>
+
+                    <button className="btn-primary" style={{width: '100%'}} onClick={save}>{t("saveChanges")}</button>
+                </div>
+            )}
+        </>
+    );
+};
+
+interface InstallationProgressProps {
+    statuses: any[];
+    onInstallAll: () => void;
+    isInstalling: boolean;
+    t: (key: string) => string;
+}
+
+const InstallationProgress = ({ statuses, onInstallAll, isInstalling, t }: InstallationProgressProps) => {
+    return (
+        <div style={{
+            height: '100vh', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            backgroundColor: '#fff',
+            padding: '40px',
+            textAlign: 'center',
+            boxSizing: 'border-box'
+        }}>
+            <h2 style={{color: '#fb923c', marginBottom: '10px'}}>Tool Installation Check</h2>
+            <p style={{color: '#6b7280', marginBottom: '30px'}}>AICoder requires several CLI tools to function correctly.</p>
+            
+            <div style={{width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '40px'}}>
+                {statuses.map(s => (
+                    <div key={s.name} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb'}}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                            <span style={{fontSize: '1.2rem'}}>{s.name === 'claude' ? '🤖' : s.name === 'gemini' ? '♊' : '💻'}</span>
+                            <span style={{fontWeight: 600, textTransform: 'capitalize'}}>{s.name}</span>
+                        </div>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                            {s.installed ? (
+                                <>
+                                    <span style={{color: '#10b981', fontSize: '0.8rem'}}>v{s.version || 'installed'}</span>
+                                    <span style={{color: '#10b981'}}>✅</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span style={{color: '#ef4444', fontSize: '0.8rem'}}>Missing</span>
+                                    <span style={{color: '#ef4444'}}>❌</span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {isInstalling ? (
+                <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px'}}>
+                    <div className="loading-spinner" style={{width: '30px', height: '30px', border: '3px solid #ffedd5', borderTopColor: '#fb923c', borderRadius: '50%', animation: 'spin 1s infinite linear'}}></div>
+                    <span style={{color: '#fb923c', fontWeight: 500}}>Installing missing tools...</span>
+                </div>
+            ) : (
+                <button 
+                    className="btn-launch" 
+                    onClick={onInstallAll}
+                    disabled={statuses.every(s => s.installed)}
+                    style={{maxWidth: '300px', opacity: statuses.every(s => s.installed) ? 0.5 : 1}}
+                >
+                    {statuses.every(s => s.installed) ? 'All Tools Ready' : 'Install Missing Tools'}
+                </button>
+            )}
+
+            <style>{`
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
+        </div>
+    );
+};
+
 function App() {
     const [config, setConfig] = useState<main.AppConfig | null>(null);
     const [navTab, setNavTab] = useState<string>("claude");
@@ -361,6 +545,9 @@ function App() {
     const [status, setStatus] = useState("");
     const [activeTab, setActiveTab] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [toolStatuses, setToolStatuses] = useState<any[]>([]);
+    const [isCheckingTools, setIsCheckingTools] = useState(true);
+    const [isInstallingTools, setIsInstallingTools] = useState(false);
     const [envLogs, setEnvLogs] = useState<string[]>(["Initializing..."]);
     const [showLogs, setShowLogs] = useState(false);
     const [yoloMode, setYoloMode] = useState(false);
@@ -430,6 +617,7 @@ function App() {
         EventsOn("env-check-done", doneHandler);
 
         CheckEnvironment(); // Start checks
+        checkTools();
 
         // Config Logic
         LoadConfig().then((cfg) => {
@@ -476,6 +664,31 @@ function App() {
             setManagerStatus("");
         }
     }, [showProjectManager, config]);
+
+    const checkTools = async () => {
+        try {
+            const statuses = await CheckToolsStatus();
+            setToolStatuses(statuses);
+            setIsCheckingTools(false);
+        } catch (err) {
+            console.error("Failed to check tools:", err);
+            setIsCheckingTools(false);
+        }
+    };
+
+    const handleInstallAll = async () => {
+        setIsInstallingTools(true);
+        const missing = toolStatuses.filter(s => !s.installed);
+        for (const tool of missing) {
+            try {
+                await InstallTool(tool.name);
+            } catch (err) {
+                console.error(`Failed to install ${tool.name}:`, err);
+            }
+        }
+        await checkTools();
+        setIsInstallingTools(false);
+    };
 
     const handleLangChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setLang(e.target.value);
@@ -831,6 +1044,19 @@ function App() {
         );
     }
 
+    const allToolsInstalled = toolStatuses.length > 0 && toolStatuses.every(s => s.installed);
+
+    if (!allToolsInstalled || isCheckingTools) {
+        return (
+            <InstallationProgress 
+                statuses={toolStatuses} 
+                onInstallAll={handleInstallAll} 
+                isInstalling={isInstallingTools}
+                t={t}
+            />
+        );
+    }
+
     if (!config) return <div className="main-content" style={{display:'flex', justifyContent:'center', alignItems:'center'}}>{t("loadingConfig")}</div>;
 
     const toolCfg = (config as any)[activeTool] || { models: [], current_model: "" };
@@ -900,92 +1126,20 @@ function App() {
                 <div className="main-content" style={{overflowY: 'auto', paddingBottom: '20px'}}>
                     {(navTab === 'claude' || navTab === 'gemini' || navTab === 'codex') && (
                         <>
-                            {/* Tool Content (Models, Settings, Launch) */}
-                            <div style={{
-                                backgroundColor: '#fffbf5', 
-                                padding: '15px', 
-                                borderRadius: '12px',
-                                border: '1px solid rgba(251, 146, 60, 0.1)',
-                                marginBottom: '15px'
-                            }}>
-                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                                    <h3 style={{fontSize: '0.9rem', color: '#fb923c', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0}}>Models</h3>
-                                    <button 
-                                        className="btn-link" 
-                                        onClick={() => setShowModelSettings(!showModelSettings)}
-                                        style={{borderColor: '#fb923c', color: '#fb923c'}}
-                                    >
-                                        {showModelSettings ? 'Hide Config' : 'Edit Config'}
-                                    </button>
-                                </div>
-                                <div className="model-switcher" style={{flexWrap: 'wrap'}}>
-                                    {toolCfg.models.map((model: any) => (
-                                        <button
-                                            key={model.model_name}
-                                            className={`model-btn ${toolCfg.current_model === model.model_name ? 'selected' : ''}`}
-                                            onClick={() => handleModelSwitch(model.model_name)}
-                                            style={{
-                                                minWidth: '120px',
-                                                borderBottom: (model.api_key && model.api_key.trim() !== "") ? '3px solid #fb923c' : '1px solid var(--border-color)'
-                                            }}
-                                        >
-                                            {model.model_name}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {showModelSettings && (
-                                <div style={{
-                                    backgroundColor: '#fff', 
-                                    padding: '15px', 
-                                    borderRadius: '12px',
-                                    border: '1px solid var(--border-color)',
-                                    marginBottom: '15px'
-                                }}>
-                                    <div className="tabs" style={{marginBottom: '15px'}}>
-                                        {toolCfg.models.map((model: any, index: number) => (
-                                            <button
-                                                key={index}
-                                                className={`tab-button ${activeTab === index ? 'active' : ''}`}
-                                                onClick={() => setActiveTab(index)}
-                                            >
-                                                {model.model_name}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label className="form-label">{t("apiKey")}</label>
-                                        <div style={{display: 'flex', gap: '10px'}}>
-                                            <input 
-                                                type="password" 
-                                                className="form-input"
-                                                value={currentModelConfig.api_key} 
-                                                onChange={(e) => handleApiKeyChange(e.target.value)}
-                                                placeholder={t("enterKey")}
-                                            />
-                                            <button className="btn-subscribe" onClick={async () => {
-                                                const text = await ClipboardGetText();
-                                                if (text) handleApiKeyChange(text);
-                                            }}>📋</button>
-                                        </div>
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label className="form-label">{t("apiEndpoint")}</label>
-                                        <input 
-                                            type="text" 
-                                            className="form-input"
-                                            value={currentModelConfig.model_url} 
-                                            onChange={(e) => handleModelUrlChange(e.target.value)}
-                                            placeholder="https://api.example.com/v1"
-                                        />
-                                    </div>
-
-                                    <button className="btn-primary" style={{width: '100%'}} onClick={save}>{t("saveChanges")}</button>
-                                </div>
-                            )}
+                            <ToolConfiguration 
+                                toolName={navTab === 'claude' ? 'Claude' : navTab === 'gemini' ? 'Gemini' : 'Codex'}
+                                toolCfg={toolCfg}
+                                activeTab={activeTab}
+                                setActiveTab={setActiveTab}
+                                showModelSettings={showModelSettings}
+                                setShowModelSettings={setShowModelSettings}
+                                handleModelSwitch={handleModelSwitch}
+                                handleApiKeyChange={handleApiKeyChange}
+                                handleModelUrlChange={handleModelUrlChange}
+                                save={save}
+                                t={t}
+                                ClipboardGetText={ClipboardGetText}
+                            />
 
                             <div style={{
                                 backgroundColor: '#fffbf5',
@@ -1024,7 +1178,7 @@ function App() {
                                                 <span>Yolo Mode (Skip permissions)</span>
                                             </label>
                                         </div>
-                                        <button className="btn-launch" onClick={() => LaunchClaude(currentProject.yolo_mode, currentProject.path || "")}>
+                                        <button className="btn-launch" onClick={() => LaunchTool(navTab, currentProject.yolo_mode, currentProject.path || "")}>
                                             Launch {navTab === 'claude' ? 'Claude' : navTab === 'gemini' ? 'Gemini' : 'Codex'}
                                         </button>
                                     </>
@@ -1158,5 +1312,6 @@ function App() {
             )}
         </div>
     );
+}
 
-export default App
+export default App;

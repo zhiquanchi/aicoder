@@ -22,8 +22,8 @@ func setupTray(app *App, appOptions *options.App) {
 				// For now, let's assume 'icon' is defined globally or we use nil.
 				// Based on windows/darwin files, 'icon' seems to be available (likely in a resources file).
 				systray.SetIcon(icon)
-				systray.SetTitle("Claude Config Manager")
-				systray.SetTooltip("Claude Config Manager")
+				systray.SetTitle("AICoder")
+				systray.SetTooltip("AICoder Dashboard")
 
 				mShow := systray.AddMenuItem("Show", "Show Main Window")
 				mLaunch := systray.AddMenuItem("Launch Claude Code", "Launch Claude Code in Terminal")
@@ -96,7 +96,7 @@ func setupTray(app *App, appOptions *options.App) {
 							mLaunch.Click(func() {
 								go func() {
 									path := app.GetCurrentProjectPath()
-									app.LaunchClaude(false, path)
+									app.LaunchTool("claude", false, path)
 								}()
 							})
 				mQuit.Click(func() {
