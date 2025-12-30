@@ -10,7 +10,9 @@ const subscriptionUrls: {[key: string]: string} = {
     "glm": "https://bigmodel.cn/glm-coding",
     "kimi": "https://www.kimi.com/membership/pricing?from=upgrade_plan&track_id=1d2446f5-f45f-4ae5-961e-c0afe936a115",
     "doubao": "https://www.volcengine.com/activity/codingplan",
-    "minimax": "https://platform.minimaxi.com/user-center/payment/coding-plan"
+    "minimax": "https://platform.minimaxi.com/user-center/payment/coding-plan",
+    "codex": "https://www.aicodemirror.com/register?invitecode=CZPPWZ",
+    "gemini": "https://www.aicodemirror.com/register?invitecode=CZPPWZ"
 };
 
 const APP_VERSION = "1.3.2.1";
@@ -364,6 +366,7 @@ interface ToolConfigurationProps {
     handleModelSwitch: (name: string) => void;
     handleApiKeyChange: (key: string) => void;
     handleModelUrlChange: (url: string) => void;
+    onOpenSubscribe: (name: string) => void;
     save: () => void;
     t: (key: string) => string;
     ClipboardGetText: () => Promise<string>;
@@ -371,7 +374,7 @@ interface ToolConfigurationProps {
 
 const ToolConfiguration = ({
     toolName, toolCfg, activeTab, setActiveTab, showModelSettings, setShowModelSettings,
-    handleModelSwitch, handleApiKeyChange, handleModelUrlChange, save, t, ClipboardGetText
+    handleModelSwitch, handleApiKeyChange, handleModelUrlChange, onOpenSubscribe, save, t, ClipboardGetText
 }: ToolConfigurationProps) => {
     const currentModelConfig = toolCfg.models[activeTab] || { model_name: "", api_key: "", model_url: "" };
 
@@ -432,7 +435,16 @@ const ToolConfiguration = ({
                     </div>
 
                     <div className="form-group">
-                        <label className="form-label">{t("apiKey")}</label>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+                            <label className="form-label" style={{margin: 0}}>{t("apiKey")}</label>
+                            <button 
+                                className="btn-link" 
+                                style={{fontSize: '0.75rem', padding: '2px 8px'}}
+                                onClick={() => onOpenSubscribe(currentModelConfig.model_name)}
+                            >
+                                {t("getKey")}
+                            </button>
+                        </div>
                         <div style={{display: 'flex', gap: '10px'}}>
                             <input 
                                 type="password" 
@@ -1136,6 +1148,7 @@ function App() {
                                 handleModelSwitch={handleModelSwitch}
                                 handleApiKeyChange={handleApiKeyChange}
                                 handleModelUrlChange={handleModelUrlChange}
+                                onOpenSubscribe={handleOpenSubscribe}
                                 save={save}
                                 t={t}
                                 ClipboardGetText={ClipboardGetText}
