@@ -553,12 +553,10 @@ function App() {
 
     const switchTool = (tool: string) => {
         setNavTab(tool);
-        // We keep activeTool updated to the last used CLI tool even when in settings/projects
         if (tool === 'claude' || tool === 'gemini' || tool === 'codex') {
             setActiveTool(tool);
         }
         
-        // Load active tab for the tool
         if (config) {
             const toolCfg = (config as any)[tool];
             if (toolCfg && toolCfg.models) {
@@ -629,7 +627,6 @@ function App() {
         });
     };
 
-    // Project Management Functions
     const getCurrentProject = () => {
         if (!config || !config.projects) return null;
         return config.projects.find((p: any) => p.id === config.current_project) || config.projects[0];
@@ -714,14 +711,6 @@ function App() {
         if (url) {
             BrowserOpenURL(url);
         }
-    };
-
-    const handleOpenManual = () => {
-        const isChinese = lang === "zh-Hans" || lang === "zh-Hant";
-        const url = isChinese 
-            ? "https://github.com/RapidAI/cceasy/blob/main/UserManual_CN.md" 
-            : "https://github.com/RapidAI/cceasy/blob/main/UserManual_EN.md";
-        BrowserOpenURL(url);
     };
 
     const save = () => {
@@ -899,7 +888,7 @@ function App() {
                     </div>
                 </div>
 
-                <div className="main-content" style={{overflowY: 'auto', paddingBottom: '100px'}}>
+                <div className="main-content" style={{overflowY: 'auto', paddingBottom: '20px'}}>
                     {(navTab === 'claude' || navTab === 'gemini' || navTab === 'codex') && (
                         <ToolConfiguration 
                             toolName={navTab === 'claude' ? 'Claude' : navTab === 'gemini' ? 'Gemini' : 'Codex'}
@@ -919,7 +908,7 @@ function App() {
                             </div>
                             
                             <div style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
-                                {config.projects.map((proj: any) => (
+                                {config && config.projects && config.projects.map((proj: any) => (
                                     <div key={proj.id} style={{
                                         padding: '15px', 
                                         backgroundColor: '#fff', 
@@ -1005,26 +994,11 @@ function App() {
                     )}
                 </div>
 
-                {/* Global Action Bar */} 
+                {/* Global Action Bar (Footer) */}
                 {config && (
-                    <div style={{
-                        position: 'absolute',
-                        bottom: '20px',
-                        right: '20px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end',
-                        gap: '10px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                        padding: '15px',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border-color)',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                        backdropFilter: 'blur(10px)',
-                        zIndex: 10
-                    }}>
-                        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px'}}>
-                            <div style={{fontSize: '0.7rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Active Runner</div>
+                    <div className="global-action-bar">
+                        <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                            <div style={{fontSize: '0.7rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Runner Status</div>
                             <div style={{fontSize: '0.9rem', fontWeight: 600, color: '#374151'}}>
                                 <span style={{color: '#fb923c', textTransform: 'capitalize'}}>{activeTool}</span>
                                 <span style={{margin: '0 8px', color: '#d1d5db'}}>|</span>
@@ -1032,7 +1006,7 @@ function App() {
                             </div>
                         </div>
 
-                        <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
                             <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.85rem'}}>
                                 <input 
                                     type="checkbox" 
@@ -1053,7 +1027,7 @@ function App() {
                                         setStatus(t("projectDirError"));
                                     }
                                 }}
-                                style={{margin: 0, minWidth: '140px'}}
+                                style={{margin: 0, minWidth: '160px'}}
                             >
                                 {t("launch")}
                             </button>

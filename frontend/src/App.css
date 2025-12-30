@@ -47,8 +47,27 @@ body {
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    padding: 20px 0;
+    padding: 10px 0;
     z-index: 100;
+}
+
+.sidebar-header {
+    padding: 10px 20px 20px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.sidebar-title {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--primary-color);
 }
 
 .sidebar-item {
@@ -85,6 +104,19 @@ body {
     flex-direction: column;
     overflow: hidden;
     background-color: var(--bg-color);
+    position: relative; /* For absolute positioning of status message if needed, or footer */
+}
+
+.global-action-bar {
+    width: 100%;
+    background-color: var(--surface-color);
+    border-top: 1px solid var(--border-color);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.03);
 }
 
 .header {
