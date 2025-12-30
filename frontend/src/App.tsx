@@ -878,7 +878,8 @@ function App() {
                             {navTab === 'claude' ? 'Claude Code' : 
                              navTab === 'gemini' ? 'Gemini CLI' : 
                              navTab === 'codex' ? 'OpenAI Codex' : 
-                             navTab === 'projects' ? 'Project Management' : 'Global Settings'}
+                             navTab === 'projects' ? t("projectManagement") : 
+                             navTab === 'settings' ? 'Global Settings' : t("about")}
                         </h2>
                         <div style={{display: 'flex', gap: '10px', '--wails-draggable': 'no-drag', marginRight: '5px'} as any}>
                             <button onClick={WindowHide} className="btn-hide">
