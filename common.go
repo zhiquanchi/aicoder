@@ -25,38 +25,6 @@ var trayTranslations = map[string]map[string]string{
 		"models":  "服務商選擇",
 		"actions": "操作",
 	},
-	"ko": {
-		"title":   "AICoder 대시보드",
-		"show":    "메인 창 표시",
-		"launch":  "Claude Code 시작",
-		"quit":    "프로그램 종료",
-		"models":  "서비스 제공자",
-		"actions": "작업",
-	},
-	"ja": {
-		"title":   "AICoder ダッシュボード",
-		"show":    "メインウィンドウを表示",
-		"launch":  "Claude Code を起動",
-		"quit":    "終了",
-		"models":  "プロバイダー選択",
-		"actions": "操作",
-	},
-	"de": {
-		"title":   "AICoder Dashboard",
-		"show":    "Hauptfenster anzeigen",
-		"launch":  "Claude Code starten",
-		"quit":    "Beenden",
-		"models":  "Anbieter",
-		"actions": "Aktionen",
-	},
-	"fr": {
-		"title":   "Tableau de bord AICoder",
-		"show":    "Afficher la fenêtre principale",
-		"launch":  "Lancer Claude Code",
-		"quit":    "Quitter",
-		"models":  "Fournisseurs",
-		"actions": "Actions",
-	},
 }
 
 const RequiredNodeVersion = "22.14.0"

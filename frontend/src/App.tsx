@@ -180,194 +180,6 @@ const translations: any = {
         "paste": "貼上",
         "hideConfig": "配置",
         "editConfig": "配置"
-    },
-    "ko": {
-        "title": "AICoder",
-        "about": "정보",
-        "manual": "매뉴얼",
-        "cs146s": "온라인 강의",
-        "recoverCC": "CC 초기화",
-        "hide": "숨기기",
-        "launch": "시작",
-        "projectDir": "프로젝트 디렉토리",
-        "change": "변경",
-        "yoloMode": "Yolo 모드",
-        "dangerouslySkip": "(위험: 권한 확인 건너뛰기)",
-        "launchBtn": "시작",
-        "activeModel": "서비스 제공자 선택",
-        "modelSettings": "서비스 제공자 설정",
-        "modelName": "서비스 제공자 이름",
-        "apiKey": "API 키",
-        "getKey": "API 키 발급",
-        "enterKey": "API 키 입력",
-        "apiEndpoint": "API 엔드포인트",
-        "saveChanges": "저장 및 닫기",
-        "saving": "저장 중...",
-        "saved": "저장 성공!",
-        "recovering": "복구 중...",
-        "recoverSuccess": "복구 성공!",
-        "recoverSuccessAlert": "Claude Code가 초기화되었습니다.",
-        "confirmRecover": "Claude Code를 초기 상태로 복구하시겠습니까? 모든 설정이 지워집니다.",
-        "recoverTitle": "Claude Code 초기화",
-        "recoverWarning": "경고: Claude Code 설정 및 인증 토큰이 영구적으로 삭제됩니다. 이 작업은 취소할 수 없습니다.",
-        "startRecover": "초기화 시작",
-        "close": "닫기",
-        "manageProjects": "프로젝트 관리",
-        "projectManagement": "프로젝트 관리",
-        "projectName": "프로젝트 이름",
-        "delete": "삭제",
-        "addNewProject": "+ 새 프로젝트 추가",
-        "projectDirError": "유효한 프로젝트 디렉토리를 설정해주세요!",
-        "initializing": "초기화 중...",
-        "loadingConfig": "설정 불러오는 중...",
-        "syncing": "동기화 중...",
-        "switched": "서비스 제공자 전환 및 동기화 완료!",
-        "langName": "한국어",
-        "custom": "사용자 정의",
-        "paste": "붙여넣기",
-        "hideConfig": "설정",
-        "editConfig": "설정"
-    },
-    "ja": {
-        "title": "AICoder",
-        "about": "バージョン情報",
-        "manual": "マニュアル",
-        "cs146s": "オンライン講座",
-        "recoverCC": "CCを復元",
-        "hide": "隠す",
-        "launch": "起動",
-        "projectDir": "プロジェクト・ディレクトリ",
-        "change": "変更",
-        "yoloMode": "Yolo モード",
-        "dangerouslySkip": "(危険：権限チェックをスキップ)",
-        "launchBtn": "起動",
-        "activeModel": "プロバイダー選択",
-        "modelSettings": "プロバイダー設定",
-        "modelName": "プロバイダー名",
-        "apiKey": "API キー",
-        "getKey": "API キーを取得",
-        "enterKey": "API キーを入力",
-        "apiEndpoint": "API エンドポイント",
-        "saveChanges": "保存して閉じる",
-        "saving": "保存中...",
-        "saved": "保存しました！",
-        "recovering": "復元中...",
-        "recoverSuccess": "復元成功！",
-        "recoverSuccessAlert": "Claude Code はリセットされました。",
-        "confirmRecover": "Claude Code を初期状態に復元しますか？すべての設定が消去されます。",
-        "recoverTitle": "Claude Code の復元",
-        "recoverWarning": "警告：Claude Code の設定と認証トークンが完全に削除されます。この操作は取り消せません。",
-        "startRecover": "復元を開始",
-        "close": "閉じる",
-        "manageProjects": "プロジェクト管理",
-        "projectManagement": "プロジェクト管理",
-        "projectName": "プロジェクト名",
-        "delete": "削除",
-        "addNewProject": "+ 新規プロジェクト追加",
-        "projectDirError": "有効なプロジェクトディレクトリを設定してください！",
-        "initializing": "初期化中...",
-        "loadingConfig": "設定を読み込み中...",
-        "syncing": "同期中...",
-        "switched": "プロバイダーの切り替えと同期が完了しました！",
-        "langName": "日本語",
-        "custom": "カスタム",
-        "paste": "貼り付け",
-        "hideConfig": "設定",
-        "editConfig": "設定"
-    },
-    "de": {
-        "title": "AICoder",
-        "about": "Über",
-        "manual": "Handbuch",
-        "cs146s": "Online-Kurs",
-        "recoverCC": "CC wiederherstellen",
-        "hide": "Verbergen",
-        "launch": "Starten",
-        "projectDir": "Projektverzeichnis",
-        "change": "Ändern",
-        "yoloMode": "Yolo-Modus",
-        "dangerouslySkip": "(Gefahr: Berechtigungen überspringen)",
-        "launchBtn": "Starten",
-        "activeModel": "Aktiver Anbieter",
-        "modelSettings": "Anbieter-Einstellungen",
-        "modelName": "Anbietername",
-        "apiKey": "API-Schlüssel",
-        "getKey": "API-Schlüssel erhalten",
-        "enterKey": "API-Schlüssel eingeben",
-        "apiEndpoint": "API-Endpunkt",
-        "saveChanges": "Speichern & Schließen",
-        "saving": "Speichern...",
-        "saved": "Erfolgreich gespeichert!",
-        "recovering": "Wiederherstellen...",
-        "recoverSuccess": "Wiederherstellung erfolgreich!",
-        "recoverSuccessAlert": "Claude Code wurde zurückgesetzt.",
-        "confirmRecover": "Möchten Sie Claude Code wirklich auf den Ausgangszustand zurücksetzen? Alle Konfigurationen werden gelöscht.",
-        "recoverTitle": "Claude Code wiederherstellen",
-        "recoverWarning": "Warnung: Dies löscht Ihre Claude Code-Konfigurationen und Authentifizierungstoken dauerhaft. Diese Aktion kann nicht rückgängig gemacht werden.",
-        "startRecover": "Wiederherstellung starten",
-        "close": "Schließen",
-        "manageProjects": "Projektverwaltung",
-        "projectManagement": "Projektverwaltung",
-        "projectName": "Projektname",
-        "delete": "Löschen",
-        "addNewProject": "+ Neues Projekt hinzufügen",
-        "projectDirError": "Bitte gültiges Projektverzeichnis festlegen!",
-        "initializing": "Initialisiere...",
-        "loadingConfig": "Lade Konfiguration...",
-        "syncing": "Synchronisieren...",
-        "switched": "Anbieter gewechselt & synchronisiert!",
-        "langName": "Deutsch",
-        "custom": "Benutzerdefiniert",
-        "paste": "Einfügen",
-        "hideConfig": "Konfigurieren",
-        "editConfig": "Konfigurieren"
-    },
-    "fr": {
-        "title": "AICoder",
-        "about": "À propos",
-        "manual": "Manuel",
-        "cs146s": "Cours en ligne",
-        "recoverCC": "Récupérer CC",
-        "hide": "Masquer",
-        "launch": "Lancer",
-        "projectDir": "Répertoire du projet",
-        "change": "Modifier",
-        "yoloMode": "Mode Yolo",
-        "dangerouslySkip": "(Sauter les permissions dangereusement)",
-        "launchBtn": "Lancer",
-        "activeModel": "FOURNISSEUR ACTIF",
-        "modelSettings": "PARAMÈTRES DU FOURNISSEUR",
-        "modelName": "Nom du fournisseur",
-        "apiKey": "Clé API",
-        "getKey": "Obtenir une clé API",
-        "enterKey": "Entrer la clé API",
-        "apiEndpoint": "Point de terminaison API",
-        "saveChanges": "Enregistrer et fermer",
-        "saving": "Enregistrement...",
-        "saved": "Enregistré avec succès !",
-        "recovering": "Récupération...",
-        "recoverSuccess": "Récupération réussie !",
-        "recoverSuccessAlert": "Claude Code a été réinitialisé.",
-        "confirmRecover": "Êtes-vous sûr de vouloir récupérer Claude Code dans son état initial ? Cela effacera toutes les configurations.",
-        "recoverTitle": "Récupérer Claude Code",
-        "recoverWarning": "Attention : Cela supprimera définitivement vos configurations Claude Code et vos jetons d'authentification. Cette action est irréversible.",
-        "startRecover": "Démarrer la récupération",
-        "close": "Fermer",
-        "manageProjects": "Gérer les projets",
-        "projectManagement": "Gestion de projet",
-        "projectName": "Nom du projet",
-        "delete": "Supprimer",
-        "addNewProject": "+ Ajouter un nouveau projet",
-        "projectDirError": "Veuillez définir un répertoire de projet valide !",
-        "initializing": "Initialisation...",
-        "loadingConfig": "Chargement de la configuration...",
-        "syncing": "Synchronisation...",
-        "switched": "Fournisseur changé et synchronisé !",
-        "langName": "Français",
-        "custom": "Personnalisé",
-        "paste": "Coller",
-        "hideConfig": "Configurer",
-        "editConfig": "Configurer"
     }
 };
 
@@ -386,22 +198,22 @@ const ToolConfiguration = ({
 }: ToolConfigurationProps) => {
     return (
         <div style={{
-            backgroundColor: '#fffbf5', 
+            backgroundColor: '#f8faff', 
             padding: '15px', 
             borderRadius: '12px',
-            border: '1px solid rgba(251, 146, 60, 0.1)',
+            border: '1px solid rgba(96, 165, 250, 0.1)',
             marginBottom: '15px'
         }}>
             <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'
             }}>
                 <h3 style={{
-                    fontSize: '0.9rem', color: '#fb923c', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0
+                    fontSize: '0.9rem', color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0
                 }}>{t("activeModel")}</h3>
                 <button 
                     className="btn-link" 
                     onClick={() => setShowModelSettings(true)}
-                    style={{borderColor: '#fb923c', color: '#fb923c'}}
+                    style={{borderColor: '#60a5fa', color: '#60a5fa'}}
                 >
                     {t("editConfig")}
                 </button>
@@ -414,7 +226,7 @@ const ToolConfiguration = ({
                         onClick={() => handleModelSwitch(model.model_name)}
                         style={{
                             minWidth: '120px',
-                            borderBottom: (model.api_key && model.api_key.trim() !== "") ? '3px solid #fb923c' : '1px solid var(--border-color)'
+                            borderBottom: (model.api_key && model.api_key.trim() !== "") ? '3px solid #60a5fa' : '1px solid var(--border-color)'
                         }}
                     >
                         {model.model_name}
@@ -471,14 +283,6 @@ function App() {
             initialLang = "zh-Hant";
         } else if (userLang.startsWith("zh")) {
             initialLang = "zh-Hans";
-        } else if (userLang.startsWith("ko")) {
-            initialLang = "ko";
-        } else if (userLang.startsWith("ja")) {
-            initialLang = "ja";
-        } else if (userLang.startsWith("de")) {
-            initialLang = "de";
-        } else if (userLang.startsWith("fr")) {
-            initialLang = "fr";
         }
         setLang(initialLang);
         SetLanguage(initialLang);
@@ -759,12 +563,12 @@ function App() {
                 textAlign: 'center',
                 boxSizing: 'border-box'
             }}>
-                <h2 style={{color: '#fb923c', marginBottom: '20px'}}>AICoder</h2>
-                <div style={{width: '100%', height: '4px', backgroundColor: '#ffedd5', borderRadius: '2px', overflow: 'hidden', marginBottom: '15px'}}>
+                <h2 style={{color: '#60a5fa', marginBottom: '20px'}}>AICoder</h2>
+                <div style={{width: '100%', height: '4px', backgroundColor: '#e2e8f0', borderRadius: '2px', overflow: 'hidden', marginBottom: '15px'}}>
                     <div style={{
                         width: '50%', 
                         height: '100%', 
-                        backgroundColor: '#fb923c', 
+                        backgroundColor: '#60a5fa', 
                         borderRadius: '2px', 
                         animation: 'indeterminate 1.5s infinite linear'
                     }}></div>
@@ -783,7 +587,7 @@ function App() {
                             fontFamily: 'monospace',
                             color: '#4b5563',
                             backgroundColor: '#fffdfa',
-                            border: '1px solid #ffedd5',
+                            border: '1px solid #e2e8f0',
                             borderRadius: '8px',
                             resize: 'none',
                             outline: 'none',
@@ -802,7 +606,7 @@ function App() {
                         style={{
                             background: 'none',
                             border: 'none',
-                            color: '#fb923c',
+                            color: '#60a5fa',
                             fontSize: '0.8rem',
                             cursor: 'pointer',
                             textDecoration: 'underline'
@@ -874,7 +678,7 @@ function App() {
             <div className="main-container">
                 <div className="top-header" style={{'--wails-draggable': 'drag'} as any}>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%'}}>
-                        <h2 style={{margin: 0, fontSize: '1.1rem', color: '#fb923c', fontWeight: 'bold', marginLeft: '20px'}}>
+                        <h2 style={{margin: 0, fontSize: '1.1rem', color: '#60a5fa', fontWeight: 'bold', marginLeft: '20px'}}>
                             {navTab === 'claude' ? 'Claude Code' : 
                              navTab === 'gemini' ? 'Gemini CLI' : 
                              navTab === 'codex' ? 'OpenAI Codex' : 
@@ -978,10 +782,6 @@ function App() {
                                     <option value="en">English</option>
                                     <option value="zh-Hans">简体中文</option>
                                     <option value="zh-Hant">繁體中文</option>
-                                    <option value="ko">한국어</option>
-                                    <option value="ja">日本語</option>
-                                    <option value="de">Deutsch</option>
-                                    <option value="fr">Français</option>
                                 </select>
                             </div>
                             
@@ -1002,7 +802,7 @@ function App() {
                             textAlign: 'center'
                         }}>
                             <img src={appIcon} alt="Logo" style={{width: '80px', height: '80px', marginBottom: '20px'}} />
-                            <h2 style={{color: '#fb923c', margin: '0 0 10px 0'}}>AICoder</h2>
+                            <h2 style={{color: '#60a5fa', margin: '0 0 10px 0'}}>AICoder</h2>
                             <div style={{fontSize: '1rem', color: '#374151', marginBottom: '5px'}}>Version {APP_VERSION}</div>
                             <div style={{fontSize: '0.9rem', color: '#6b7280', marginBottom: '30px'}}>Author: Dr. Daniel</div>
                             
@@ -1035,7 +835,7 @@ function App() {
                             <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
                                 <div style={{fontSize: '0.7rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Runner Status</div>
                                 <div style={{fontSize: '0.9rem', fontWeight: 600, color: '#374151'}}>
-                                    <span style={{color: '#fb923c', textTransform: 'capitalize'}}>{activeTool}</span>
+                                    <span style={{color: '#60a5fa', textTransform: 'capitalize'}}>{activeTool}</span>
                                     <span style={{margin: '0 8px', color: '#d1d5db'}}>|</span>
                                     <span>{(config as any)[activeTool].current_model}</span>
                                 </div>
@@ -1083,7 +883,7 @@ function App() {
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <button className="modal-close" onClick={() => setShowAbout(false)}>&times;</button>
                         <img src={appIcon} alt="Logo" style={{width: '64px', height: '64px', marginBottom: '15px'}} />
-                        <h3 style={{color: '#fb923c'}}>AICoder</h3>
+                        <h3 style={{color: '#60a5fa'}}>AICoder</h3>
                         <p>Version {APP_VERSION}</p>
                         <button className="btn-primary" onClick={() => BrowserOpenURL("https://github.com/RapidAI/cceasy")}>GitHub</button>
                     </div>
@@ -1107,7 +907,7 @@ function App() {
                 <div className="modal-overlay">
                     <div className="modal-content" style={{width: '500px', textAlign: 'left'}}>
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                            <h3 style={{margin: 0, color: '#fb923c'}}>{t("modelSettings")}</h3>
+                            <h3 style={{margin: 0, color: '#60a5fa'}}>{t("modelSettings")}</h3>
                             <button className="modal-close" onClick={() => setShowModelSettings(false)}>&times;</button>
                         </div>
 
