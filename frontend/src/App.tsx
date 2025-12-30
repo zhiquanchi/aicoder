@@ -1193,13 +1193,15 @@ function App() {
                         <div className="form-group">
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
                                 <label className="form-label" style={{margin: 0}}>{t("apiKey")}</label>
-                                <button 
-                                    className="btn-link" 
-                                    style={{fontSize: '0.75rem', padding: '2px 8px'}}
-                                    onClick={() => handleOpenSubscribe((config as any)[activeTool].models[activeTab].model_name)}
-                                >
-                                    {t("getKey")}
-                                </button>
+                                {!(config as any)[activeTool].models[activeTab].is_custom && (
+                                    <button 
+                                        className="btn-link" 
+                                        style={{fontSize: '0.75rem', padding: '2px 8px'}}
+                                        onClick={() => handleOpenSubscribe((config as any)[activeTool].models[activeTab].model_name)}
+                                    >
+                                        {t("getKey")}
+                                    </button>
+                                )}
                             </div>
                             <div style={{display: 'flex', gap: '10px'}}>
                                 <input 

@@ -545,6 +545,28 @@ func (a *App) LoadConfig() (AppConfig, error) {
 	ensureAiCodeMirror(&config.Gemini.Models, "AiCodeMirror", "https://api.aicodemirror.com/api/gemini", true)
 	ensureAiCodeMirror(&config.Codex.Models, "AiCodeMirror", "https://api.aicodemirror.com/api/codex/backend-api/codex", true)
 
+	// Ensure 'Custom' is always last for all tools
+	moveCustomToLast := func(models *[]ModelConfig) {
+		var customModel *ModelConfig
+		var newModels []ModelConfig
+		for _, m := range *models {
+			if m.IsCustom || m.ModelName == "Custom" {
+				m.IsCustom = true // Ensure flag is set
+				customModel = &m
+			} else {
+				newModels = append(newModels, m)
+			}
+		}
+		if customModel != nil {
+			newModels = append(newModels, *customModel)
+		}
+		*models = newModels
+	}
+
+	moveCustomToLast(&config.Claude.Models)
+	moveCustomToLast(&config.Gemini.Models)
+	moveCustomToLast(&config.Codex.Models)
+
 	// Ensure CurrentModel is valid after filtering
 	config.Gemini.CurrentModel = "AiCodeMirror"
 	config.Codex.CurrentModel = "AiCodeMirror"
