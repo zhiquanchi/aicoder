@@ -391,14 +391,17 @@ func (a *App) LoadConfig() (AppConfig, error) {
 		{ModelName: "kimi", ModelUrl: "https://api.kimi.com/coding", ApiKey: ""},
 		{ModelName: "doubao", ModelUrl: "https://ark.cn-beijing.volces.com/api/coding", ApiKey: ""},
 		{ModelName: "MiniMax", ModelUrl: "https://api.minimaxi.com/anthropic", ApiKey: ""},
+		{ModelName: "AICodeMirror", ModelUrl: "https://api.aicodemirror.com/api/claudecode", ApiKey: ""},
 		{ModelName: "Custom", ModelUrl: "", ApiKey: "", IsCustom: true},
 	}
 	defaultGeminiModels := []ModelConfig{
 		{ModelName: "Gemini 1.5 Pro", ModelUrl: "", ApiKey: ""},
 		{ModelName: "Gemini 1.5 Flash", ModelUrl: "", ApiKey: ""},
+		{ModelName: "AICodeMirror", ModelUrl: "https://api.aicodemirror.com/api/gemini", ApiKey: ""},
 	}
 	defaultCodexModels := []ModelConfig{
 		{ModelName: "Codex", ModelUrl: "", ApiKey: ""},
+		{ModelName: "AICodeMirror", ModelUrl: "https://api.aicodemirror.com/api/codex/backend-api/codex", ApiKey: ""},
 	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {

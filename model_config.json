@@ -27,6 +27,27 @@
       "api_key": "your_minimax_api_key_here",
       "temperature": 0.7,
       "max_tokens": 1000
+    },
+    {
+      "model_name": "AICodeMirror-Claude",
+      "model_url": "https://api.aicodemirror.com/api/claudecode",
+      "api_key": "",
+      "temperature": 0.7,
+      "max_tokens": 4096
+    },
+    {
+      "model_name": "AICodeMirror-Gemini",
+      "model_url": "https://api.aicodemirror.com/api/gemini",
+      "api_key": "",
+      "temperature": 0.7,
+      "max_tokens": 4096
+    },
+    {
+      "model_name": "AICodeMirror-Codex",
+      "model_url": "https://api.aicodemirror.com/api/codex/backend-api/codex",
+      "api_key": "",
+      "temperature": 0.7,
+      "max_tokens": 4096
     }
   ]
 }
