@@ -31,7 +31,7 @@ const translations: any = {
         "change": "Change",
         "yoloMode": "Yolo Mode",
         "dangerouslySkip": "(Dangerously Skip Permissions)",
-        "launchBtn": "Launch Claude Code",
+        "launchBtn": "Launch Tool",
         "activeModel": "ACTIVE PROVIDER",
         "modelSettings": "PROVIDER SETTINGS",
         "modelName": "Provider Name",
@@ -44,7 +44,7 @@ const translations: any = {
         "saved": "Saved successfully!",
         "recovering": "Recovering...",
         "recoverSuccess": "Recovery successful!",
-        "recoverSuccessAlert": "Claude Code has been reset. Please DO NOT click 'Launch Claude Code' here. Instead, open your terminal manually and run 'claude' to complete the native setup.",
+        "recoverSuccessAlert": "Claude Code has been reset. Please DO NOT click 'Launch' here. Instead, open your terminal manually and run 'claude' to complete the native setup.",
         "confirmRecover": "Are you sure you want to recover Claude Code to its initial state? This will clear all configurations.",
         "recoverTitle": "Recover Claude Code",
         "recoverWarning": "Warning: This will permanently delete your Claude Code configurations and authentication tokens. This action cannot be undone.",
@@ -58,7 +58,7 @@ const translations: any = {
         "projectDirError": "Please set a valid Project Directory!",
         "initializing": "Initializing...",
         "loadingConfig": "Loading config...",
-        "syncing": "Syncing to Claude Code...",
+        "syncing": "Syncing...",
         "switched": "Provider switched & synced!",
         "projectSwitched": "Project switched!",
         "dirUpdated": "Directory updated!",
@@ -86,7 +86,7 @@ const translations: any = {
         "change": "更改",
         "yoloMode": "Yolo 模式",
         "dangerouslySkip": "(危险：跳过权限检查)",
-        "launchBtn": "启动 Claude Code",
+        "launchBtn": "启动工具",
         "activeModel": "服务商选择",
         "modelSettings": "服务商设置",
         "modelName": "服务商名称",
@@ -99,7 +99,7 @@ const translations: any = {
         "saved": "保存成功！",
         "recovering": "正在恢复...",
         "recoverSuccess": "恢复成功！",
-        "recoverSuccessAlert": "Claude Code 已重置。请注意：不要点击本程序的“启动 Claude Code”按钮。请自行手动打开终端窗口并运行 'claude' 命令以恢复原厂设置。",
+        "recoverSuccessAlert": "Claude Code 已重置。请注意：不要点击本程序的“启动”按钮。请自行手动打开终端窗口并运行 'claude' 命令以恢复原厂设置。",
         "confirmRecover": "确定要将 Claude Code 恢复到初始状态吗？这将清除所有配置。",
         "recoverTitle": "恢复 Claude Code",
         "recoverWarning": "警告：这将永久删除您的 Claude Code 配置和认证令牌。此操作无法撤销。",
@@ -113,7 +113,7 @@ const translations: any = {
         "projectDirError": "请设置有效的项目目录！",
         "initializing": "初始化中...",
         "loadingConfig": "加载配置中...",
-        "syncing": "正在同步到 Claude Code...",
+        "syncing": "正在同步...",
         "switched": "服务商已切换并同步！",
         "projectSwitched": "项目已切换！",
         "dirUpdated": "目录已更新！",
@@ -141,7 +141,7 @@ const translations: any = {
         "change": "變更",
         "yoloMode": "Yolo 模式",
         "dangerouslySkip": "(危險：跳過權限檢查)",
-        "launchBtn": "啟動 Claude Code",
+        "launchBtn": "啟動工具",
         "activeModel": "服務商選擇",
         "modelSettings": "服務商設定",
         "modelName": "服務商名稱",
@@ -154,7 +154,7 @@ const translations: any = {
         "saved": "儲存成功！",
         "recovering": "正在恢復...",
         "recoverSuccess": "恢復成功！",
-        "recoverSuccessAlert": "Claude Code 已重置。請注意：不要點擊本程序的“啟動 Claude Code”按鈕。請自行手動打開終端窗口並運行 'claude' 命令以恢復原廠設置。",
+        "recoverSuccessAlert": "Claude Code 已重置。請注意：不要點擊本程序的“啟動”按鈕。請自行手動打開終端窗口並運行 'claude' 命令以恢復原廠設置。",
         "confirmRecover": "確定要將 Claude Code 恢復到初始狀態嗎？這將清除所有配置。",
         "recoverTitle": "恢復 Claude Code",
         "recoverWarning": "警告：這將永久刪除您的 Claude Code 配置和認證令牌。此操作無法撤銷。",
@@ -168,7 +168,7 @@ const translations: any = {
         "projectDirError": "請設置有效的專案目錄！",
         "initializing": "初始化中...",
         "loadingConfig": "載入設定中...",
-        "syncing": "正在同步到 Claude Code...",
+        "syncing": "正在同步...",
         "switched": "服務商已切換並同步！",
         "langName": "繁體中文",
         "custom": "自定義",
@@ -193,7 +193,7 @@ const translations: any = {
         "change": "변경",
         "yoloMode": "Yolo 모드",
         "dangerouslySkip": "(위험: 권한 확인 건너뛰기)",
-        "launchBtn": "Claude Code 시작",
+        "launchBtn": "시작",
         "activeModel": "서비스 제공자 선택",
         "modelSettings": "서비스 제공자 설정",
         "modelName": "서비스 제공자 이름",
@@ -220,7 +220,7 @@ const translations: any = {
         "projectDirError": "유효한 프로젝트 디렉토리를 설정해주세요!",
         "initializing": "초기화 중...",
         "loadingConfig": "설정 불러오는 중...",
-        "syncing": "Claude Code와 동기화 중...",
+        "syncing": "동기화 중...",
         "switched": "서비스 제공자 전환 및 동기화 완료!",
         "langName": "한국어",
         "custom": "사용자 정의",
@@ -240,7 +240,7 @@ const translations: any = {
         "change": "変更",
         "yoloMode": "Yolo モード",
         "dangerouslySkip": "(危険：権限チェックをスキップ)",
-        "launchBtn": "Claude Code を起動",
+        "launchBtn": "起動",
         "activeModel": "プロバイダー選択",
         "modelSettings": "プロバイダー設定",
         "modelName": "プロバイダー名",
@@ -267,7 +267,7 @@ const translations: any = {
         "projectDirError": "有効なプロジェクトディレクトリを設定してください！",
         "initializing": "初期化中...",
         "loadingConfig": "設定を読み込み中...",
-        "syncing": "Claude Code に同期中...",
+        "syncing": "同期中...",
         "switched": "プロバイダーの切り替えと同期が完了しました！",
         "langName": "日本語",
         "custom": "カスタム",
@@ -287,7 +287,7 @@ const translations: any = {
         "change": "Ändern",
         "yoloMode": "Yolo-Modus",
         "dangerouslySkip": "(Gefahr: Berechtigungen überspringen)",
-        "launchBtn": "Claude Code starten",
+        "launchBtn": "Starten",
         "activeModel": "Aktiver Anbieter",
         "modelSettings": "Anbieter-Einstellungen",
         "modelName": "Anbietername",
@@ -314,7 +314,7 @@ const translations: any = {
         "projectDirError": "Bitte gültiges Projektverzeichnis festlegen!",
         "initializing": "Initialisiere...",
         "loadingConfig": "Lade Konfiguration...",
-        "syncing": "Synchronisiere mit Claude Code...",
+        "syncing": "Synchronisieren...",
         "switched": "Anbieter gewechselt & synchronisiert!",
         "langName": "Deutsch",
         "custom": "Benutzerdefiniert",
@@ -334,7 +334,7 @@ const translations: any = {
         "change": "Modifier",
         "yoloMode": "Mode Yolo",
         "dangerouslySkip": "(Sauter les permissions dangereusement)",
-        "launchBtn": "Lancer Claude Code",
+        "launchBtn": "Lancer",
         "activeModel": "FOURNISSEUR ACTIF",
         "modelSettings": "PARAMÈTRES DU FOURNISSEUR",
         "modelName": "Nom du fournisseur",
@@ -361,7 +361,7 @@ const translations: any = {
         "projectDirError": "Veuillez définir un répertoire de projet valide !",
         "initializing": "Initialisation...",
         "loadingConfig": "Chargement de la configuration...",
-        "syncing": "Synchronisation avec Claude Code...",
+        "syncing": "Synchronisation...",
         "switched": "Fournisseur changé et synchronisé !",
         "langName": "Français",
         "custom": "Personnalisé",
@@ -392,8 +392,12 @@ const ToolConfiguration = ({
             border: '1px solid rgba(251, 146, 60, 0.1)',
             marginBottom: '15px'
         }}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                <h3 style={{fontSize: '0.9rem', color: '#fb923c', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0}}>{t("activeModel")}</h3>
+            <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'
+            }}>
+                <h3 style={{
+                    fontSize: '0.9rem', color: '#fb923c', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0
+                }}>{t("activeModel")}</h3>
                 <button 
                     className="btn-link" 
                     onClick={() => setShowModelSettings(true)}
@@ -522,7 +526,6 @@ function App() {
         });
 
         // Listen for external config changes (e.g. from Tray)
-        // Only update the config state (Active Model UI), do NOT switch the editing Tab.
         const handleConfigChange = (cfg: main.AppConfig) => {
             setConfig(cfg);
         };
@@ -550,14 +553,18 @@ function App() {
 
     const switchTool = (tool: string) => {
         setNavTab(tool);
-        if (tool === "projects" || tool === "settings") return;
+        // We keep activeTool updated to the last used CLI tool even when in settings/projects
+        if (tool === 'claude' || tool === 'gemini' || tool === 'codex') {
+            setActiveTool(tool);
+        }
         
-        setActiveTool(tool);
-        setActiveTab(0); // Reset model tab when switching tools
+        // Load active tab for the tool
         if (config) {
-            const newConfig = new main.AppConfig({...config, active_tool: tool});
-            setConfig(newConfig);
-            SaveConfig(newConfig);
+            const toolCfg = (config as any)[tool];
+            if (toolCfg && toolCfg.models) {
+                const idx = toolCfg.models.findIndex((m: any) => m.model_name === toolCfg.current_model);
+                if (idx !== -1) setActiveTab(idx);
+            }
         }
     };
 
@@ -648,7 +655,6 @@ function App() {
                     p.id === currentProj.id ? { ...p, path: dir } : p
                 );
                 
-                // Update deprecated project_dir for backward compat if needed, but primarily use projects list
                 const newConfig = new main.AppConfig({...config, projects: newProjects, project_dir: dir});
                 setConfig(newConfig);
                 setStatus(t("dirUpdated"));
@@ -674,17 +680,14 @@ function App() {
         SaveConfig(newConfig);
     };
 
-    // Temp Project Manager Handlers (Local State)
     const handleAddNewProject = async () => {
         if (!config) return;
         
         let baseName = "Project";
         let newName = "";
         let i = 1;
-        // Search for a truly unique name
         while (true) {
             newName = `${baseName} ${i}`;
-            // eslint-disable-next-line
             if (!config.projects.some((p: any) => p.name === newName)) break;
             i++;
         }
@@ -738,8 +741,6 @@ function App() {
     const handleStartRecover = () => {
         setRecoverStatus("recovering");
         setRecoverLogs([]);
-        
-        // Setup listener
         EventsOn("recover-log", (msg: string) => {
             setRecoverLogs(prev => [...prev, msg]);
         });
@@ -822,19 +823,8 @@ function App() {
                     </button>
 
                     {showLogs && (
-                        <button 
-                            onClick={Quit}
-                            style={{
-                                backgroundColor: '#ef4444',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                padding: '4px 12px',
-                                fontSize: '0.8rem',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            {lang === 'zh-Hans' ? '退出程序' : 'Quit Application'}
+                        <button onClick={Quit} className="btn-hide" style={{borderColor: '#ef4444', color: '#ef4444', padding: '4px 12px'}}>
+                            {lang === 'zh-Hans' ? '退出程序' : 'Quit'}
                         </button>
                     )}
                 </div>
@@ -852,13 +842,10 @@ function App() {
     if (!config) return <div className="main-content" style={{display:'flex', justifyContent:'center', alignItems:'center'}}>{t("loadingConfig")}</div>;
 
     const toolCfg = (config as any)[activeTool] || { models: [], current_model: "" };
-    const currentModelConfig = toolCfg.models[activeTab] || { model_name: "", is_custom: false, api_key: "", model_url: "" };
     const currentProject = getCurrentProject();
-    const visibleProjects = config.projects ? config.projects.slice(projectOffset, projectOffset + 5) : [];
 
     return (
         <div id="App">
-            {/* Drag Handle for the whole window area if needed, but sidebar/header are better */}
             <div style={{
                 height: '30px', 
                 width: '100%', 
@@ -869,35 +856,32 @@ function App() {
                 '--wails-draggable': 'drag'
             } as any}></div>
 
-            <div className="sidebar">
-                <div style={{padding: '0 20px 20px 20px', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                    <img src={appIcon} alt="Logo" style={{width: '24px', height: '24px'}} />
-                    <span style={{fontWeight: 'bold', fontSize: '1.1rem', color: '#fb923c'}}>AICoder</span>
+            <div className="sidebar" style={{'--wails-draggable': 'no-drag'} as any}>
+                <div className="sidebar-header">
+                    <img src={appIcon} alt="Logo" className="sidebar-logo" />
+                    <span className="sidebar-title">AICoder</span>
                 </div>
-                
                 <div className={`sidebar-item ${navTab === 'claude' ? 'active' : ''}`} onClick={() => switchTool('claude')}>
-                    <span>🤖 Claude</span>
+                    <span className="sidebar-icon">🤖</span> Claude
                 </div>
                 <div className={`sidebar-item ${navTab === 'gemini' ? 'active' : ''}`} onClick={() => switchTool('gemini')}>
-                    <span>♊ Gemini</span>
+                    <span className="sidebar-icon">♊</span> Gemini
                 </div>
                 <div className={`sidebar-item ${navTab === 'codex' ? 'active' : ''}`} onClick={() => switchTool('codex')}>
-                    <span>💻 Codex</span>
+                    <span className="sidebar-icon">💻</span> Codex
                 </div>
-                <div className={`sidebar-item ${navTab === 'projects' ? 'active' : ''}`} onClick={() => setNavTab('projects')}>
-                    <span>📁 Projects</span>
+                <div style={{flex: 1}}></div>
+                <div className={`sidebar-item ${navTab === 'projects' ? 'active' : ''}`} onClick={() => switchTool('projects')}>
+                    <span className="sidebar-icon">📂</span> {t("manageProjects")}
                 </div>
-
-                <div className="sidebar-spacer"></div>
-
-                <div className={`sidebar-item ${navTab === 'settings' ? 'active' : ''}`} onClick={() => setNavTab('settings')}>
-                    <span>⚙️ Settings</span>
+                <div className={`sidebar-item ${navTab === 'settings' ? 'active' : ''}`} onClick={() => switchTool('settings')}>
+                    <span className="sidebar-icon">⚙️</span> Settings
                 </div>
             </div>
 
             <div className="main-container">
-                <div className="header">
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <div className="top-header" style={{'--wails-draggable': 'drag'} as any}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%'}}>
                         <h2 style={{margin: 0, fontSize: '1.1rem', color: '#374151'}}>
                             {navTab === 'claude' ? 'Claude Code' : 
                              navTab === 'gemini' ? 'Gemini CLI' : 
@@ -915,62 +899,16 @@ function App() {
                     </div>
                 </div>
 
-                <div className="main-content" style={{overflowY: 'auto', paddingBottom: '20px'}}>
+                <div className="main-content" style={{overflowY: 'auto', paddingBottom: '100px'}}>
                     {(navTab === 'claude' || navTab === 'gemini' || navTab === 'codex') && (
-                        <>
-                            <ToolConfiguration 
-                                toolName={navTab === 'claude' ? 'Claude' : navTab === 'gemini' ? 'Gemini' : 'Codex'}
-                                toolCfg={toolCfg}
-                                showModelSettings={showModelSettings}
-                                setShowModelSettings={setShowModelSettings}
-                                handleModelSwitch={handleModelSwitch}
-                                t={t}
-                            />
-
-                            <div style={{
-                                backgroundColor: '#fffbf5',
-                                padding: '15px',
-                                borderRadius: '12px',
-                                border: '1px solid rgba(251, 146, 60, 0.1)'
-                            }}>
-                                <h3 style={{fontSize: '0.9rem', color: '#fb923c', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '15px', marginTop: 0}}>Execution</h3>
-                                
-                                <div className="tabs" style={{marginBottom: '10px', borderBottom: 'none'}}>
-                                    {config.projects.map((proj: any) => (
-                                        <button
-                                            key={proj.id}
-                                            className={`tab-button ${config.current_project === proj.id ? 'active' : ''}`}
-                                            onClick={() => handleProjectSwitch(proj.id)}
-                                            style={{borderRadius: '4px', marginRight: '5px', border: '1px solid var(--border-color)'}}
-                                        >
-                                            {proj.name}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {currentProject && (
-                                    <>
-                                        <div style={{fontSize: '0.8rem', color: '#6b7280', marginBottom: '10px', overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                                            📍 {currentProject.path}
-                                        </div>
-                                        <div style={{marginBottom: '15px'}}>
-                                            <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.85rem'}}>
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={currentProject.yolo_mode}
-                                                    onChange={(e) => handleYoloChange(e.target.checked)}
-                                                    style={{marginRight: '8px'}}
-                                                />
-                                                <span>Yolo Mode (Skip permissions)</span>
-                                            </label>
-                                        </div>
-                                        <button className="btn-launch" onClick={() => LaunchTool(navTab, currentProject.yolo_mode, currentProject.path || "")}>
-                                            Launch {navTab === 'claude' ? 'Claude' : navTab === 'gemini' ? 'Gemini' : 'Codex'}
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        </>
+                        <ToolConfiguration 
+                            toolName={navTab === 'claude' ? 'Claude' : navTab === 'gemini' ? 'Gemini' : 'Codex'}
+                            toolCfg={toolCfg}
+                            showModelSettings={showModelSettings}
+                            setShowModelSettings={setShowModelSettings}
+                            handleModelSwitch={handleModelSwitch}
+                            t={t}
+                        />
                     )}
 
                     {navTab === 'projects' && (
@@ -1067,6 +1005,62 @@ function App() {
                     )}
                 </div>
 
+                {/* Global Action Bar */} 
+                {config && (
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '20px',
+                        right: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-end',
+                        gap: '10px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        padding: '15px',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border-color)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                        backdropFilter: 'blur(10px)',
+                        zIndex: 10
+                    }}>
+                        <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px'}}>
+                            <div style={{fontSize: '0.7rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Active Runner</div>
+                            <div style={{fontSize: '0.9rem', fontWeight: 600, color: '#374151'}}>
+                                <span style={{color: '#fb923c', textTransform: 'capitalize'}}>{activeTool}</span>
+                                <span style={{margin: '0 8px', color: '#d1d5db'}}>|</span>
+                                <span>{(config as any)[activeTool].current_model}</span>
+                            </div>
+                        </div>
+
+                        <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                            <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.85rem'}}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={getCurrentProject()?.yolo_mode || false}
+                                    onChange={(e) => handleYoloChange(e.target.checked)}
+                                    style={{marginRight: '8px'}}
+                                />
+                                <span>Yolo Mode</span>
+                            </label>
+                            
+                            <button 
+                                className="btn-launch" 
+                                onClick={() => {
+                                    const currProj = getCurrentProject();
+                                    if (currProj) {
+                                        LaunchTool(activeTool, currProj.yolo_mode, currProj.path || "");
+                                    } else {
+                                        setStatus(t("projectDirError"));
+                                    }
+                                }}
+                                style={{margin: 0, minWidth: '140px'}}
+                            >
+                                {t("launch")}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 <div className="status-message" style={{padding: '0 20px 10px 20px', minHeight: '30px'}}>
                     <span key={status} style={{color: (status.includes("Error") || status.includes("!") || status.includes("first")) ? '#ef4444' : '#10b981'}}>
                         {status}
@@ -1074,7 +1068,7 @@ function App() {
                 </div>
             </div>
 
-            {/* Modals remain mostly the same but might need cleanup */}
+            {/* Modals */}
             {showAbout && (
                 <div className="modal-overlay" onClick={() => setShowAbout(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
