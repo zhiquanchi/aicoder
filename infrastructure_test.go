@@ -169,3 +169,39 @@ func TestSyncToGeminiSettings_Original(t *testing.T) {
 		t.Errorf("Expected legacy .geminirc to be gone")
 	}
 }
+
+func TestSyncToCodexSettings_Original(t *testing.T) {
+	tmpHome, _ := os.MkdirTemp("", "codex-original-test")
+	defer os.RemoveAll(tmpHome)
+
+	os.Setenv("HOME", tmpHome)
+	if os.Getenv("USERPROFILE") != "" {
+		os.Setenv("USERPROFILE", tmpHome)
+	}
+
+	app := &App{}
+	
+	// Create some files to be deleted
+	dir, auth := app.getCodexConfigPaths()
+	os.MkdirAll(dir, 0755)
+	os.WriteFile(auth, []byte("junk"), 0644)
+	os.WriteFile(filepath.Join(dir, "config.toml"), []byte("junk"), 0644)
+
+	config := AppConfig{
+		Codex: ToolConfig{
+			CurrentModel: "Original",
+			Models: []ModelConfig{
+				{ModelName: "Original"},
+			},
+		},
+	}
+
+	err := app.syncToCodexSettings(config)
+	if err != nil {
+		t.Fatalf("syncToCodexSettings failed: %v", err)
+	}
+
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Errorf("Expected .codex directory to be gone")
+	}
+}

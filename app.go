@@ -336,11 +336,6 @@ func (a *App) syncToClaudeSettings(config AppConfig) error {
 }
 
 func (a *App) syncToCodexSettings(config AppConfig) error {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
 	var selectedModel *ModelConfig
 	for _, m := range config.Codex.Models {
 		if m.ModelName == config.Codex.CurrentModel {
@@ -353,20 +348,18 @@ func (a *App) syncToCodexSettings(config AppConfig) error {
 		return fmt.Errorf("selected codex model not found")
 	}
 
-	// If "Original" is selected, delete all config files and DO NOT write anything
-	codexDir := filepath.Join(home, ".codex")
+	dir, authPath := a.getCodexConfigPaths()
+
 	if strings.ToLower(selectedModel.ModelName) == "original" {
-		os.RemoveAll(codexDir)
+		a.clearCodexConfig()
 		return nil
 	}
 
-	// Create .codex directory for custom providers
-	if err := os.MkdirAll(codexDir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
 
 	// Create auth.json
-	authPath := filepath.Join(codexDir, "auth.json")
 	authData := map[string]string{
 		"OPENAI_API_KEY": selectedModel.ApiKey,
 	}
@@ -379,7 +372,7 @@ func (a *App) syncToCodexSettings(config AppConfig) error {
 	}
 
 	// Create config.toml
-	configPath := filepath.Join(codexDir, "config.toml")
+	configPath := filepath.Join(dir, "config.toml")
 	baseUrl := selectedModel.ModelUrl
 	if baseUrl == "" {
 		baseUrl = "https://api.aicodemirror.com/api/codex/backend-api/codex"
