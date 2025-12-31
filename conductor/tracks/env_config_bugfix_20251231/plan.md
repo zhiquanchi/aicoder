@@ -24,7 +24,7 @@ This plan outlines the steps to fix the environment configuration logic, ensurin
 - [x] Task: Update `syncToCodexSettings` to handle the "Original" provider by deleting `.codex` directory or files.
 - [x] Task: Refactor `LaunchTool` for Codex to handle `OPENAI_API_KEY` and `WIRE_API` unsetting in "Original" mode.
 - [x] Task: Write unit tests to verify Codex cleanup and custom setup.
-- [x] Task: Conductor - User Manual Verification 'Phase 4: OpenAI Codex' (Protocol in workflow.md) [checkpoint: ]
+- [x] Task: Conductor - User Manual Verification 'Phase 4: OpenAI Codex' (Protocol in workflow.md) [checkpoint: d587097]
 
 ## Phase 5: Global Launch & Persistence Refinement
 - [ ] Task: Ensure `SaveConfig` does not inadvertently write "leak" data when switching providers.
