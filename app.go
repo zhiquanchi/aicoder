@@ -12,6 +12,8 @@ import (
 	"regexp"
 	stdruntime "runtime"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -179,19 +181,66 @@ func (a *App) GetCurrentProjectPath() string {
 	return home // Fallback
 }
 
+func (a *App) getClaudeConfigPaths() (string, string, string) {
+	home, _ := os.UserHomeDir()
+	dir := filepath.Join(home, ".claude")
+	settings := filepath.Join(dir, "settings.json")
+	legacy := filepath.Join(home, ".claude.json")
+	return dir, settings, legacy
+}
+
+func (a *App) getGeminiConfigPaths() (string, string, string) {
+	home, _ := os.UserHomeDir()
+	dir := filepath.Join(home, ".gemini")
+	config := filepath.Join(dir, "config.json")
+	legacy := filepath.Join(home, ".geminirc")
+	return dir, config, legacy
+}
+
+func (a *App) getCodexConfigPaths() (string, string) {
+	home, _ := os.UserHomeDir()
+	dir := filepath.Join(home, ".codex")
+	auth := filepath.Join(dir, "auth.json")
+	// config.toml is also used
+	return dir, auth
+}
+
+func (a *App) clearClaudeConfig() {
+	dir, _, legacy := a.getClaudeConfigPaths()
+	os.RemoveAll(dir)
+	os.Remove(legacy)
+	a.log("Cleared Claude configuration files")
+}
+
+func (a *App) clearGeminiConfig() {
+	dir, _, legacy := a.getGeminiConfigPaths()
+	os.RemoveAll(dir)
+	os.Remove(legacy)
+	a.log("Cleared Gemini configuration files")
+}
+
+func (a *App) clearCodexConfig() {
+	dir, _ := a.getCodexConfigPaths()
+	os.RemoveAll(dir)
+	a.log("Cleared Codex configuration directory")
+}
+
+func (a *App) clearEnvVars() {
+	vars := []string{
+		"ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN",
+		"OPENAI_API_KEY", "OPENAI_BASE_URL", "WIRE_API",
+		"GEMINI_API_KEY", "GEMINI_BASE_URL",
+	}
+	for _, v := range vars {
+		os.Unsetenv(v)
+	}
+}
+
 func (a *App) syncToClaudeSettings(config AppConfig) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
-
-	// 1. Sync to ~/.claude/settings.json
-	claudeDir := filepath.Join(home, ".claude")
-	if err := os.MkdirAll(claudeDir, 0755); err != nil {
-		return err
-	}
-
-	settingsPath := filepath.Join(claudeDir, "settings.json")
 
 	var selectedModel *ModelConfig
 	for _, m := range config.Claude.Models {
@@ -203,6 +252,16 @@ func (a *App) syncToClaudeSettings(config AppConfig) error {
 
 	if selectedModel == nil {
 		return fmt.Errorf("selected model not found")
+	}
+
+	settingsPath := filepath.Join(home, ".claude", "settings.json")
+	claudeJsonPath := filepath.Join(home, ".claude.json")
+
+	if strings.ToLower(selectedModel.ModelName) == "original" {
+		// Clear/Delete configuration files for "Original" mode
+		os.RemoveAll(filepath.Join(home, ".claude"))
+		os.Remove(claudeJsonPath)
+		return nil
 	}
 
 	settings := make(map[string]interface{})
@@ -258,7 +317,7 @@ func (a *App) syncToClaudeSettings(config AppConfig) error {
 	}
 
 	// 2. Sync to ~/.claude.json for customApiKeyResponses
-	claudeJsonPath := filepath.Join(home, ".claude.json")
+	// claudeJsonPath already declared earlier in function
 	var claudeJson map[string]interface{}
 	
 	if jsonData, err := os.ReadFile(claudeJsonPath); err == nil {
@@ -280,6 +339,117 @@ func (a *App) syncToClaudeSettings(config AppConfig) error {
 
 	return os.WriteFile(claudeJsonPath, data2, 0644)
 }
+
+func (a *App) syncToCodexSettings(config AppConfig) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	var selectedModel *ModelConfig
+	for _, m := range config.Codex.Models {
+		if m.ModelName == config.Codex.CurrentModel {
+			selectedModel = &m
+			break
+		}
+	}
+
+	if selectedModel == nil {
+		return fmt.Errorf("selected codex model not found")
+	}
+
+	// If "Original" is selected, delete all config files and DO NOT write anything
+	codexDir := filepath.Join(home, ".codex")
+	if strings.ToLower(selectedModel.ModelName) == "original" {
+		os.RemoveAll(codexDir)
+		return nil
+	}
+
+	// Create .codex directory for custom providers
+	if err := os.MkdirAll(codexDir, 0755); err != nil {
+		return err
+	}
+
+	// Create auth.json
+	authPath := filepath.Join(codexDir, "auth.json")
+	authData := map[string]string{
+		"OPENAI_API_KEY": selectedModel.ApiKey,
+	}
+	authJson, err := json.MarshalIndent(authData, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(authPath, authJson, 0644); err != nil {
+		return err
+	}
+
+	// Create config.toml
+	configPath := filepath.Join(codexDir, "config.toml")
+	baseUrl := selectedModel.ModelUrl
+	if baseUrl == "" {
+		baseUrl = "https://api.aicodemirror.com/api/codex/backend-api/codex"
+	}
+
+	configToml := fmt.Sprintf(`model_provider = "aicodemirror"
+model = "gpt-5.2-codex"
+model_reasoning_effort = "xhigh"
+disable_response_storage = true
+preferred_auth_method = "apikey"
+
+[model_providers.aicodemirror]
+name = "aicodemirror"
+base_url = "%s"
+wire_api = "responses"
+`, baseUrl)
+
+	return os.WriteFile(configPath, []byte(configToml), 0644)
+}
+
+func (a *App) syncToGeminiSettings(config AppConfig) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	var selectedModel *ModelConfig
+	for _, m := range config.Gemini.Models {
+		if m.ModelName == config.Gemini.CurrentModel {
+			selectedModel = &m
+			break
+		}
+	}
+
+	if selectedModel == nil {
+		return fmt.Errorf("selected gemini model not found")
+	}
+
+	// If "Original" is selected, delete all config files and DO NOT write anything
+	geminiDir := filepath.Join(home, ".gemini")
+	if strings.ToLower(selectedModel.ModelName) == "original" {
+		os.RemoveAll(geminiDir)
+		return nil
+	}
+
+	// For custom providers, create configuration files
+	if err := os.MkdirAll(geminiDir, 0755); err != nil {
+		return err
+	}
+
+	// Create config file for custom provider
+	configPath := filepath.Join(geminiDir, "config.json")
+	configData := map[string]interface{}{
+		"apiKey":  selectedModel.ApiKey,
+		"baseUrl": selectedModel.ModelUrl,
+	}
+
+	configJson, err := json.MarshalIndent(configData, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(configPath, configJson, 0644)
+}
+
 
 func getBaseUrl(selectedModel *ModelConfig) string {
 	baseUrl := selectedModel.ModelUrl
@@ -344,31 +514,97 @@ func (a *App) LaunchTool(toolName string, yoloMode bool, projectDir string) {
 		return
 	}
 
-	// Set environment variables for the current process
-	os.Setenv(envKey, selectedModel.ApiKey)
-	if selectedModel.ModelUrl != "" {
-		os.Setenv(envBaseUrl, selectedModel.ModelUrl)
+	// Clear configuration directories for all CLI tools before launch to ensure clean state
+	home, err := os.UserHomeDir()
+	if err == nil {
+		switch strings.ToLower(toolName) {
+		case "claude":
+			claudeDir := filepath.Join(home, ".claude")
+			claudeJsonPath := filepath.Join(home, ".claude.json")
+			os.RemoveAll(claudeDir)
+			os.Remove(claudeJsonPath)
+			a.log("Cleared Claude configuration files for clean launch")
+		case "gemini":
+			geminiDir := filepath.Join(home, ".gemini")
+			geminiConfigPath := filepath.Join(home, ".geminirc")
+			os.RemoveAll(geminiDir)
+			os.Remove(geminiConfigPath)
+			a.log("Cleared Gemini configuration files for clean launch")
+		case "codex":
+			codexDir := filepath.Join(home, ".codex")
+			os.RemoveAll(codexDir)
+			a.log("Cleared Codex configuration directory for clean launch")
+		}
 	}
-	
+
+	// Clear environment variables for the current process to ensure a clean state
+	varsToClear := []string{
+		"ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN",
+		"OPENAI_API_KEY", "OPENAI_BASE_URL",
+		"GEMINI_API_KEY", "GEMINI_BASE_URL",
+	}
+	for _, v := range varsToClear {
+		os.Unsetenv(v)
+	}
+
 	env := make(map[string]string)
-	env[envKey] = selectedModel.ApiKey
-	if selectedModel.ModelUrl != "" {
-		env[envBaseUrl] = selectedModel.ModelUrl
-	}
+	if strings.ToLower(selectedModel.ModelName) != "original" {
+		// --- OTHER PROVIDER MODE: CLEANUP + WRITE ---
+		
+		// Set process environment variables
+		os.Setenv(envKey, selectedModel.ApiKey)
+		env[envKey] = selectedModel.ApiKey
+		if selectedModel.ModelUrl != "" {
+			os.Setenv(envBaseUrl, selectedModel.ModelUrl)
+			env[envBaseUrl] = selectedModel.ModelUrl
+		}
 
-	// For Claude specifically, we also need ANTHROPIC_AUTH_TOKEN and legacy sync
-	if strings.ToLower(toolName) == "claude" {
-		os.Setenv("ANTHROPIC_AUTH_TOKEN", selectedModel.ApiKey)
-		env["ANTHROPIC_AUTH_TOKEN"] = selectedModel.ApiKey
+		// Tool-specific configurations
+		switch strings.ToLower(toolName) {
+		case "claude":
+			os.Setenv("ANTHROPIC_AUTH_TOKEN", selectedModel.ApiKey)
+			env["ANTHROPIC_AUTH_TOKEN"] = selectedModel.ApiKey
+			a.syncToClaudeSettings(config)
+		case "gemini":
+			a.syncToGeminiSettings(config)
+		case "codex":
+			os.Setenv("WIRE_API", "responses")
+			env["WIRE_API"] = "responses"
+			// Ensure OpenAI standard vars for Codex
+			os.Setenv("OPENAI_API_KEY", selectedModel.ApiKey)
+			env["OPENAI_API_KEY"] = selectedModel.ApiKey
+			if selectedModel.ModelUrl != "" {
+				os.Setenv("OPENAI_BASE_URL", selectedModel.ModelUrl)
+				env["OPENAI_BASE_URL"] = selectedModel.ModelUrl
+			}
+			a.syncToCodexSettings(config)
+		}
+	} else {
+		// --- ORIGINAL MODE: CLEANUP ONLY, NO WRITING ---
+		
+		// Unset process environment variables
+		os.Unsetenv(envKey)
+		os.Unsetenv(envBaseUrl)
+		os.Unsetenv("ANTHROPIC_AUTH_TOKEN")
+		os.Unsetenv("WIRE_API")
+		os.Unsetenv("OPENAI_API_KEY")
+		os.Unsetenv("OPENAI_BASE_URL")
+
+		// Trigger explicit cleanup of all config files
 		a.syncToClaudeSettings(config)
+		a.syncToGeminiSettings(config)
+		a.syncToCodexSettings(config)
+		
+		a.log("Running in Original mode: All custom configurations cleared.")
 	}
-
 	// Platform specific launch
 	a.platformLaunch(binaryName, yoloMode, projectDir, env)
 }
 
 func (a *App) log(message string) {
-	runtime.EventsEmit(a.ctx, "env-log", message)
+	if a.ctx != nil {
+		runtime.EventsEmit(a.ctx, "env-log", message)
+	}
 }
 
 func (a *App) getConfigPath() (string, error) {
@@ -387,6 +623,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 
 	// Helper for default models
 	defaultClaudeModels := []ModelConfig{
+		{ModelName: "Original", ModelUrl: "", ApiKey: ""},
 		{ModelName: "GLM", ModelUrl: "https://open.bigmodel.cn/api/anthropic", ApiKey: ""},
 		{ModelName: "kimi", ModelUrl: "https://api.kimi.com/coding", ApiKey: ""},
 		{ModelName: "doubao", ModelUrl: "https://ark.cn-beijing.volces.com/api/coding", ApiKey: ""},
@@ -395,10 +632,12 @@ func (a *App) LoadConfig() (AppConfig, error) {
 		{ModelName: "Custom", ModelUrl: "", ApiKey: "", IsCustom: true},
 	}
 	defaultGeminiModels := []ModelConfig{
+		{ModelName: "Original", ModelUrl: "", ApiKey: ""},
 		{ModelName: "AiCodeMirror", ModelUrl: "https://api.aicodemirror.com/api/gemini", ApiKey: ""},
 		{ModelName: "Custom", ModelUrl: "", ApiKey: "", IsCustom: true},
 	}
 	defaultCodexModels := []ModelConfig{
+		{ModelName: "Original", ModelUrl: "", ApiKey: ""},
 		{ModelName: "AiCodeMirror", ModelUrl: "https://api.aicodemirror.com/api/codex/backend-api/codex", ApiKey: ""},
 		{ModelName: "Custom", ModelUrl: "", ApiKey: "", IsCustom: true},
 	}
@@ -433,7 +672,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 						},
 						Projects:       oldConfig.Projects,
 						CurrentProject: oldConfig.CurrentProj,
-						ActiveTool:     "claude",
+						ActiveTool:     "message",
 					}
 					a.SaveConfig(config)
 					// Optional: os.Remove(oldPath)
@@ -465,7 +704,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 				},
 			},
 			CurrentProject: "default",
-			ActiveTool:     "claude",
+			ActiveTool:     "message",
 		}
 
 		err = a.SaveConfig(defaultConfig)
@@ -491,18 +730,26 @@ func (a *App) LoadConfig() (AppConfig, error) {
 	// Inject AiCodeMirror if missing
 	ensureAiCodeMirror := func(models *[]ModelConfig, name, url string, strictlyOnly bool) {
 		if strictlyOnly {
-			// For Gemini/Codex, we keep ONLY AiCodeMirror AND Custom
+			// For Gemini/Codex, we keep Original, AiCodeMirror AND Custom
 			var newModels []ModelConfig
+			foundOriginal := false
 			foundName := false
 			foundCustom := false
 			for _, m := range *models {
-				if m.ModelName == name || m.ModelName == "AiCodeMirror" {
+				if m.ModelName == "Original" {
+					newModels = append(newModels, m)
+					foundOriginal = true
+				} else if m.ModelName == name || m.ModelName == "AiCodeMirror" {
 					newModels = append(newModels, m)
 					foundName = true
 				} else if m.IsCustom || m.ModelName == "Custom" {
 					newModels = append(newModels, m)
 					foundCustom = true
 				}
+			}
+			if !foundOriginal {
+				// Insert Original at the beginning
+				newModels = append([]ModelConfig{{ModelName: "Original", ModelUrl: "", ApiKey: ""}}, newModels...)
 			}
 			if !foundName {
 				newModels = append(newModels, ModelConfig{ModelName: name, ModelUrl: url, ApiKey: ""})
@@ -516,6 +763,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 
 		found := false
 		foundCustom := false
+		foundOriginal := false
 		for _, m := range *models {
 			if m.ModelName == name {
 				found = true
@@ -523,6 +771,13 @@ func (a *App) LoadConfig() (AppConfig, error) {
 			if m.IsCustom || m.ModelName == "Custom" {
 				foundCustom = true
 			}
+			if m.ModelName == "Original" {
+				foundOriginal = true
+			}
+		}
+		if !foundOriginal {
+			// Insert Original at the beginning
+			*models = append([]ModelConfig{{ModelName: "Original", ModelUrl: "", ApiKey: ""}}, *models...)
 		}
 		if !found {
 			*models = append(*models, ModelConfig{ModelName: name, ModelUrl: url, ApiKey: ""})
@@ -563,24 +818,48 @@ func (a *App) LoadConfig() (AppConfig, error) {
 		*models = newModels
 	}
 
+	// Ensure 'Original' is always first for all tools
+	ensureOriginalFirst := func(models *[]ModelConfig) {
+		var originalModel *ModelConfig
+		var newModels []ModelConfig
+		for i := range *models {
+			m := &(*models)[i]
+			if m.ModelName == "Original" {
+				originalModel = m
+			} else {
+				newModels = append(newModels, *m)
+			}
+		}
+		if originalModel != nil {
+			*models = append([]ModelConfig{*originalModel}, newModels...)
+		}
+	}
+
 	moveCustomToLast(&config.Claude.Models)
 	moveCustomToLast(&config.Gemini.Models)
 	moveCustomToLast(&config.Codex.Models)
+
+	ensureOriginalFirst(&config.Claude.Models)
+	ensureOriginalFirst(&config.Gemini.Models)
+	ensureOriginalFirst(&config.Codex.Models)
 
 	// Ensure CurrentModel is valid after filtering
 	config.Gemini.CurrentModel = "AiCodeMirror"
 	config.Codex.CurrentModel = "AiCodeMirror"
 
 	if config.ActiveTool == "" {
-		config.ActiveTool = "claude"
+		config.ActiveTool = "message"
 	}
 
 	return config, nil
 }
 
 func (a *App) SaveConfig(config AppConfig) error {
-	// Sync to Claude Code settings
+	// Sync settings for all tools
 	a.syncToClaudeSettings(config)
+	a.syncToGeminiSettings(config)
+	a.syncToCodexSettings(config)
+	
 	// Sync system environment variables
 	a.syncToSystemEnv(config)
 
@@ -722,6 +1001,31 @@ func (a *App) ShowMessage(title, message string) {
 	})
 }
 
+func (a *App) ReadBBS() (string, error) {
+	url := "https://raw.githubusercontent.com/RapidAI/cceasy/main/bbs.md"
+	
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	
+	resp, err := client.Get(url)
+	if err != nil {
+		return "Failed to fetch remote message: " + err.Error(), nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "Remote message unavailable (Status: " + resp.Status + ")", nil
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "Error reading remote content: " + err.Error(), nil
+	}
+
+	return string(data), nil
+}
+
 // compareVersions returns 1 if v1 > v2, -1 if v1 < v2, 0 if equal
 func compareVersions(v1, v2 string) int {
 	parts1 := strings.Split(v1, ".")
@@ -771,10 +1075,7 @@ func (a *App) getInstalledClaudeVersion(claudePath string) (string, error) {
 	cmd := exec.Command(claudePath, "--version")
 	// Hide window on Windows
 	if stdruntime.GOOS == "windows" {
-		// We can't easily access syscall.SysProcAttr here without importing syscall
-		// but since this is just getting version, it should be quick.
-		// If we really need to hide it, we might need platform specific helpers.
-		// For now, let's assume it's fine or we handle it in platform code.
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	}
 	
 	out, err := cmd.Output()
@@ -800,6 +1101,9 @@ func (a *App) getInstalledClaudeVersion(claudePath string) (string, error) {
 
 func (a *App) getLatestClaudeVersion(npmPath string) (string, error) {
 	cmd := exec.Command(npmPath, "view", "@anthropic-ai/claude-code", "version")
+	if stdruntime.GOOS == "windows" {
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	}
 	out, err := cmd.Output()
 	if err != nil {
 		return "", err
