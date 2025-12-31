@@ -6,7 +6,7 @@ This plan outlines the steps to fix the environment configuration logic, ensurin
 - [x] Task: Audit and consolidate configuration paths for all tools in `common.go` or `app.go`.
 - [x] Task: Implement standardized, tool-specific cleanup functions (e.g., `clearClaudeConfig`, `clearGeminiConfig`, `clearCodexConfig`).
 - [x] Task: Create a unified environment variable clearing utility for the launch process.
-- [x] Task: Conductor - User Manual Verification 'Phase 1: Core Infrastructure' (Protocol in workflow.md) [checkpoint: ]
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Core Infrastructure' (Protocol in workflow.md) [checkpoint: 505f065]
 
 ## Phase 2: Claude Code Configuration Fixes
 - [ ] Task: Update `syncToClaudeSettings` to handle the "Original" provider by strictly deleting files and returning early.
