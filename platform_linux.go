@@ -288,3 +288,15 @@ func (a *App) platformLaunch(binaryName string, yoloMode bool, projectDir string
 
 func (a *App) syncToSystemEnv(config AppConfig) {
 }
+
+func createVersionCmd(path string) *exec.Cmd {
+	return exec.Command(path, "--version")
+}
+
+func createNpmViewCmd(npmPath string) *exec.Cmd {
+	return exec.Command(npmPath, "view", "@anthropic-ai/claude-code", "version")
+}
+
+func createNpmInstallCmd(npmPath string, args []string) *exec.Cmd {
+	return exec.Command(npmPath, args...)
+}

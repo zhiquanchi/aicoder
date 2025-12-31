@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 )
 
 type ToolStatus struct {
@@ -88,17 +87,7 @@ func (tm *ToolManager) GetToolStatus(name string) ToolStatus {
 
 func (tm *ToolManager) getToolVersion(name, path string) (string, error) {
 	var cmd *exec.Cmd
-	
-	if runtime.GOOS == "windows" {
-		// Use cmd /c for Windows to ensure .cmd files are handled and paths are quoted correctly
-		cmd = exec.Command("cmd")
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    fmt.Sprintf(`cmd /c ""%s" --version"`, path),
-			HideWindow: true,
-		}
-	} else {
-		cmd = exec.Command(path, "--version")
-	}
+	cmd = createVersionCmd(path)
 
 	out, err := cmd.Output()
 	if err != nil {
@@ -156,29 +145,7 @@ func (tm *ToolManager) InstallTool(name string) error {
 	}
 	
 	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		// Prepare quoted arguments for the command line
-		quotedArgs := make([]string, len(args))
-		for i, arg := range args {
-			if strings.ContainsAny(arg, " &^") {
-				quotedArgs[i] = fmt.Sprintf(`"%s"`, arg)
-			} else {
-				quotedArgs[i] = arg
-			}
-		}
-
-		// Use cmd /c with CmdLine for raw control over quoting on Windows.
-		// We wrap the entire command in another set of quotes to ensure cmd /c
-		// handles the internal quotes correctly.
-		cmdLine := fmt.Sprintf(`cmd /c ""%s" %s"`, npmPath, strings.Join(quotedArgs, " "))
-		cmd = exec.Command("cmd")
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    cmdLine,
-			HideWindow: true,
-		}
-	} else {
-		cmd = exec.Command(npmPath, args...)
-	}
+	cmd = createNpmInstallCmd(npmPath, args)
 
 	// Set environment to include local node bin for the installation process
 	localBinDir := filepath.Join(localNodeDir, "bin")

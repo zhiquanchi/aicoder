@@ -24,6 +24,7 @@ const translations: any = {
         "about": "About",
         "manual": "Manual",
         "cs146s": "Online Course",
+        "faq": "FAQ",
         "hide": "Hide",
         "launch": "Start Coding",
         "project": "Project",
@@ -68,7 +69,7 @@ const translations: any = {
         "settings": "Settings",
         "globalSettings": "Global Settings",
         "language": "Language",
-        "runnerStatus": "Runner Status",
+        "runnerStatus": "Current Environment",
         "yoloModeLabel": "Yolo Mode (Skip Permissions)",
         "customProviderPlaceholder": "Custom Provider Name",
         "version": "Version",
@@ -84,6 +85,7 @@ const translations: any = {
         "about": "关于",
         "manual": "使用说明",
         "cs146s": "在线课程",
+        "faq": "常见问题",
         "hide": "隐藏",
         "launch": "开始编程",
         "project": "项目",
@@ -128,7 +130,7 @@ const translations: any = {
         "settings": "设置",
         "globalSettings": "全局设置",
         "language": "界面语言",
-        "runnerStatus": "运行状态",
+        "runnerStatus": "当前环境",
         "yoloModeLabel": "Yolo 模式",
         "customProviderPlaceholder": "自定义服务商名称",
         "version": "版本",
@@ -144,6 +146,7 @@ const translations: any = {
         "about": "關於",
         "manual": "使用說明",
         "cs146s": "線上課程",
+        "faq": "常見問題",
         "hide": "隱藏",
         "launch": "開始編程",
         "project": "專案",
@@ -186,7 +189,7 @@ const translations: any = {
         "settings": "設置",
         "globalSettings": "全局設置",
         "language": "界面語言",
-        "runnerStatus": "運行狀態",
+        "runnerStatus": "目前環境",
         "yoloModeLabel": "Yolo 模式",
         "customProviderPlaceholder": "自定義服務商名稱",
         "version": "版本",
@@ -582,8 +585,20 @@ function App() {
                 backgroundColor: '#fff',
                 padding: '20px',
                 textAlign: 'center',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                borderRadius: '12px',
+                border: '1px solid rgba(0, 0, 0, 0.15)',
+                overflow: 'hidden'
             }}>
+                <div style={{
+                    height: '30px', 
+                    width: '100%', 
+                    position: 'absolute', 
+                    top: 0, 
+                    left: 0, 
+                    zIndex: 999, 
+                    '--wails-draggable': 'drag'
+                } as any}></div>
                 <h2 style={{color: '#60a5fa', marginBottom: '20px'}}>AICoder</h2>
                 <div style={{width: '100%', height: '4px', backgroundColor: '#e2e8f0', borderRadius: '2px', overflow: 'hidden', marginBottom: '15px'}}>
                     <div style={{
@@ -718,7 +733,7 @@ function App() {
                     </div>
                 </div>
 
-                <div className="main-content" style={{overflowY: 'auto', paddingBottom: '20px'}}>
+                <div className={`main-content ${navTab !== 'projects' ? 'no-scrollbar' : ''}`} style={{overflowY: 'auto', paddingBottom: '20px'}}>
                     {navTab === 'message' && (
                         <div style={{
                             width: '100%', 
@@ -736,9 +751,26 @@ function App() {
                                 wordBreak: 'break-word',
                                 fontFamily: 'inherit',
                                 lineHeight: '1.6',
-                                color: '#374151'
+                                color: '#374151',
+                                marginBottom: '20px'
                             }}>
                                 {bbsContent}
+                            </div>
+                            
+                            <div style={{display: 'flex', gap: '15px', justifyContent: 'center', marginBottom: '20px'}}>
+                                <button className="btn-link" onClick={() => {
+                                    const manualUrl = (lang === 'zh-Hans' || lang === 'zh-Hant') 
+                                        ? "https://github.com/RapidAI/aicoder/blob/main/UserManual_CN.md" 
+                                        : "https://github.com/RapidAI/aicoder/blob/main/UserManual_EN.md";
+                                    BrowserOpenURL(manualUrl);
+                                }}>{t("manual")}</button>
+                                <button className="btn-link" onClick={() => BrowserOpenURL("https://github.com/BIT-ENGD/cs146s_cn")}>{t("cs146s")}</button>
+                                <button className="btn-link" onClick={() => {
+                                    const faqUrl = (lang === 'zh-Hans' || lang === 'zh-Hant') 
+                                        ? "https://github.com/RapidAI/aicoder/blob/main/faq.md" 
+                                        : "https://github.com/RapidAI/aicoder/blob/main/faq_en.md";
+                                    BrowserOpenURL(faqUrl);
+                                }}>{t("faq")}</button>
                             </div>
                         </div>
                     )}
@@ -755,22 +787,22 @@ function App() {
 
                     {navTab === 'projects' && (
                         <div style={{padding: '10px'}}>
-                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
                                 <h3 style={{margin: 0}}>{t("projectManagement")}</h3>
                                 <button className="btn-primary" onClick={handleAddNewProject}>{t("addNewProject")}</button>
                             </div>
                             
-                            <div style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
                                 {config && config.projects && config.projects.map((proj: any) => (
                                     <div key={proj.id} style={{
-                                        padding: '15px', 
+                                        padding: '6px 12px', 
                                         backgroundColor: '#fff', 
                                         borderRadius: '8px', 
                                         border: '1px solid var(--border-color)',
                                         display: 'flex',
                                         flexDirection: 'row',
                                         alignItems: 'center',
-                                        gap: '15px'
+                                        gap: '10px'
                                     }}>
                                         <input 
                                             type="text" 
@@ -786,7 +818,7 @@ function App() {
                                             style={{fontWeight: 'bold', border: 'none', padding: 0, fontSize: '1rem', width: '120px', flexShrink: 0}}
                                         />
                                         
-                                        <div style={{flex: 1, fontSize: '0.85rem', color: '#6b7280', backgroundColor: '#f9fafb', padding: '8px', borderRadius: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                                        <div style={{flex: 1, fontSize: '0.85rem', color: '#6b7280', backgroundColor: '#f9fafb', padding: '6px', borderRadius: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
                                             {proj.path}
                                         </div>
 
@@ -839,16 +871,19 @@ function App() {
 
                     {navTab === 'about' && (
                         <div style={{
-                            padding: '40px 20px', 
+                            padding: '20px', 
                             display: 'flex', 
                             flexDirection: 'column', 
                             alignItems: 'center', 
-                            textAlign: 'center'
+                            textAlign: 'center',
+                            height: '100%',
+                            justifyContent: 'center',
+                            boxSizing: 'border-box'
                         }}>
-                            <img src={appIcon} alt="Logo" style={{width: '80px', height: '80px', marginBottom: '20px'}} />
-                            <h2 style={{color: '#60a5fa', margin: '0 0 10px 0'}}>AICoder</h2>
+                            <img src={appIcon} alt="Logo" style={{width: '64px', height: '64px', marginBottom: '15px'}} />
+                            <h2 style={{color: '#60a5fa', margin: '0 0 8px 0'}}>RapidAI AICoder (2026 New Year)</h2>
                             <div style={{fontSize: '1rem', color: '#374151', marginBottom: '5px'}}>{t("version")} {APP_VERSION}</div>
-                            <div style={{fontSize: '0.9rem', color: '#6b7280', marginBottom: '30px'}}>{t("author")}: Dr. Daniel</div>
+                            <div style={{fontSize: '0.9rem', color: '#6b7280', marginBottom: '20px'}}>{t("author")}: Dr. Daniel</div>
                             
                             <div style={{display: 'flex', gap: '15px'}}>
                                 <button
@@ -875,13 +910,6 @@ function App() {
                                 >
                                     {t("checkUpdate")}
                                 </button>
-                                <button className="btn-link" onClick={() => {
-                                    const manualUrl = (lang === 'zh-Hans' || lang === 'zh-Hant') 
-                                        ? "https://github.com/RapidAI/aicoder/blob/main/UserManual_CN.md" 
-                                        : "https://github.com/RapidAI/aicoder/blob/main/UserManual_EN.md";
-                                    BrowserOpenURL(manualUrl);
-                                }}>{t("manual")}</button>
-                                <button className="btn-link" onClick={() => BrowserOpenURL("https://github.com/BIT-ENGD/cs146s_cn")}>{t("cs146s")}</button>
                                 <button className="btn-link" onClick={() => BrowserOpenURL("https://github.com/RapidAI/aicoder")}>GitHub</button>
                             </div>
                         </div>
@@ -891,7 +919,7 @@ function App() {
                 {/* Global Action Bar (Footer) */}
                 {config && (navTab === 'claude' || navTab === 'gemini' || navTab === 'codex') && (
                     <div className="global-action-bar">
-                        <div style={{display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', padding: '8px 0'}}>
+                        <div style={{display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', padding: '4px 0'}}>
                             <div style={{display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center'}}>
                                 <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                                     <span style={{fontSize: '0.75rem', color: '#9ca3af'}}>{t("runnerStatus")}:</span>

@@ -508,3 +508,40 @@ func (a *App) syncToSystemEnv(config AppConfig) {
 		}
 	}()
 }
+
+func createVersionCmd(path string) *exec.Cmd {
+	cmd := exec.Command("cmd")
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CmdLine:    fmt.Sprintf(`cmd /c ""%s" --version"`, path),
+		HideWindow: true,
+	}
+	return cmd
+}
+
+func createNpmViewCmd(npmPath string) *exec.Cmd {
+	cmd := exec.Command("cmd")
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CmdLine:    fmt.Sprintf(`cmd /c ""%s" view @anthropic-ai/claude-code version"`, npmPath),
+		HideWindow: true,
+	}
+	return cmd
+}
+
+func createNpmInstallCmd(npmPath string, args []string) *exec.Cmd {
+	quotedArgs := make([]string, len(args))
+	for i, arg := range args {
+		if strings.ContainsAny(arg, " &^") {
+			quotedArgs[i] = fmt.Sprintf(`"%s"`, arg)
+		} else {
+			quotedArgs[i] = arg
+		}
+	}
+	cmdLine := fmt.Sprintf(`cmd /c ""%s" %s"`, npmPath, strings.Join(quotedArgs, " "))
+	cmd := exec.Command("cmd")
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CmdLine:    cmdLine,
+		HideWindow: true,
+	}
+	return cmd
+}
+

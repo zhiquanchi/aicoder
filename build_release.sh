@@ -31,7 +31,7 @@ mkdir -p "$BIN_DIR"
 # Build Frontend
 echo "[1/4] Building Frontend..."
 cd frontend
-npm install
+npm install --cache ./.npm_cache
 npm run build
 cd ..
 
@@ -64,16 +64,16 @@ if [ -f "build/appicon.png" ]; then
     sips -z 512 512   "build/appicon.png" --out "${ICONSET_DIR}/icon_512x512.png" > /dev/null
     sips -z 1024 1024 "build/appicon.png" --out "${ICONSET_DIR}/icon_512x512@2x.png" > /dev/null
     
-    iconutil -c icns "$ICONSET_DIR" -o "build/iconfile.icns"
+    iconutil -c icns "$ICONSET_DIR" -o "build/AppIcon.icns"
     rm -rf "$ICONSET_DIR"
-    echo "    Generated build/iconfile.icns"
+    echo "    Generated build/AppIcon.icns"
 fi
 
 # Function to create App Bundle
 create_app_bundle() {
     ARCH=$1
     BINARY_NAME="${APP_NAME}_${ARCH}"
-    BUNDLE_PATH="${OUTPUT_DIR}/${ARCH}/${APP_NAME}.app"
+    BUNDLE_PATH="${OUTPUT_DIR}/${APP_NAME}_${ARCH}.app"
     
     echo "  - Creating App Bundle for $ARCH..."
     mkdir -p "${BUNDLE_PATH}/Contents/MacOS"
@@ -104,7 +104,7 @@ create_app_bundle() {
     <key>CFBundleShortVersionString</key>
     <string>${VERSION}</string>
     <key>CFBundleIconFile</key>
-    <string>iconfile</string>
+    <string>AppIcon</string>
     <key>LSMinimumSystemVersion</key>
     <string>10.13.0</string>
     <key>NSHighResolutionCapable</key>
@@ -116,25 +116,48 @@ create_app_bundle() {
 EOF
         
     # Copy Icon
-    if [ -f "build/iconfile.icns" ]; then
-        cp "build/iconfile.icns" "${BUNDLE_PATH}/Contents/Resources/iconfile.icns"
+    if [ -f "build/AppIcon.icns" ]; then
+        cp "build/AppIcon.icns" "${BUNDLE_PATH}/Contents/Resources/AppIcon.icns"
     elif [ -f "build/appicon.png" ]; then
-        cp "build/appicon.png" "${BUNDLE_PATH}/Contents/Resources/iconfile.png"
+        cp "build/appicon.png" "${BUNDLE_PATH}/Contents/Resources/AppIcon.png"
     fi
+    
+    touch "${BUNDLE_PATH}"
 }
 
 echo "[3/4] Creating App Bundles..."
 create_app_bundle amd64
 create_app_bundle arm64
 
+# Create Universal Binary
+echo "  - Creating Universal Binary..."
+UNIVERSAL_BUNDLE="${OUTPUT_DIR}/${APP_NAME}.app"
+mkdir -p "${UNIVERSAL_BUNDLE}/Contents/MacOS"
+mkdir -p "${UNIVERSAL_BUNDLE}/Contents/Resources"
+lipo -create "${BIN_DIR}/${APP_NAME}_amd64" "${BIN_DIR}/${APP_NAME}_arm64" -output "${UNIVERSAL_BUNDLE}/Contents/MacOS/${APP_NAME}"
+cp "${OUTPUT_DIR}/${APP_NAME}_arm64.app/Contents/Info.plist" "${UNIVERSAL_BUNDLE}/Contents/Info.plist"
+cp -R "${OUTPUT_DIR}/${APP_NAME}_arm64.app/Contents/Resources/" "${UNIVERSAL_BUNDLE}/Contents/Resources/"
+touch "${UNIVERSAL_BUNDLE}"
+
 # Function to create PKG
 create_pkg() {
     ARCH=$1
-    BUNDLE_ROOT="${OUTPUT_DIR}/${ARCH}"
-    PKG_NAME="${APP_NAME}-${ARCH}.pkg"
-    SCRIPTS_DIR="build/scripts_x64"
+    if [ "$ARCH" == "universal" ]; then
+        BUNDLE_PATH="${OUTPUT_DIR}/${APP_NAME}.app"
+        PKG_NAME="${APP_NAME}-Universal.pkg"
+    else
+        BUNDLE_PATH="${OUTPUT_DIR}/${APP_NAME}_${ARCH}.app"
+        PKG_NAME="${APP_NAME}-${ARCH}.pkg"
+    fi
     
-    if [ "$ARCH" == "arm64" ]; then
+    # Temporary root for pkgbuild
+    TEMP_ROOT="build/pkg_root_${ARCH}"
+    rm -rf "$TEMP_ROOT"
+    mkdir -p "$TEMP_ROOT/Applications"
+    cp -R "$BUNDLE_PATH" "$TEMP_ROOT/Applications/"
+    
+    SCRIPTS_DIR="build/scripts_x64"
+    if [ "$ARCH" == "arm64" ] || [ "$ARCH" == "universal" ]; then
         SCRIPTS_DIR="build/scripts_arm64"
     fi
     
@@ -144,17 +167,20 @@ create_pkg() {
     chmod +x "$SCRIPTS_DIR/preinstall"
     chmod +x "$SCRIPTS_DIR/postinstall"
     
-    pkgbuild --root "$BUNDLE_ROOT" \
+    pkgbuild --root "$TEMP_ROOT" \
              --identifier "$IDENTIFIER" \
              --version "$VERSION" \
-             --install-location "/Applications" \
+             --install-location "/" \
              --scripts "$SCRIPTS_DIR" \
              "${OUTPUT_DIR}/${PKG_NAME}"
+    
+    rm -rf "$TEMP_ROOT"
 }
 
 echo "[4/4] Creating Packages..."
 create_pkg amd64
 create_pkg arm64
+create_pkg universal
 
 echo "Build Complete!"
-echo "Packages are in $OUTPUT_DIR"
+echo "App Bundles and Packages are in $OUTPUT_DIR"

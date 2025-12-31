@@ -25,11 +25,11 @@ Each time AICoder starts, it automatically checks the versions of supported tool
 ## 6. What if the environment check fails?
 If Node.js or tool installation fails, please check your internet connection. In mainland China, the program automatically attempts to use domestic mirrors to speed up downloads. If automatic installation continues to fail, it is recommended to manually install the environment as prompted.
 
-## 8. What is "Recover CC" and when should I use it?
-The "Recover CC" feature is primarily for the Claude Code environment, designed to reset its execution environment to factory defaults.
-*   **Use Case**: Use this if you have manually modified Claude's official configuration, cannot log in due to API Key conflicts, or encounter persistent environment errors.
-*   **Impact**: It will permanently delete all local configurations and authentication tokens in the `~/.claude/` directory.
-*   **Follow-up**: After recovery, manually open a new terminal (CMD or PowerShell), run `claude`, and follow the official prompts to complete the initial setup once.
+## 7. How to use the original model services of each tool?
+Select **AICoderMirror** as the provider and enter your API Key. This provider acts as a relay for the original services, allowing easy access to native model services.
+
+## 8. How to use the services provided directly by the tools themselves?
+Select **"Original"** as the provider in the tool's settings to restore each tool to its default state. In this mode, you can use the tool's built-in authentication and communication methods directly.
 
 ---
 *For more issues, please visit GitHub Issues: [RapidAI/cceasy/issues](https://github.com/RapidAI/cceasy/issues)*

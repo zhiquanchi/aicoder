@@ -131,12 +131,21 @@ body {
     background: linear-gradient(to bottom, #ffffff, #f8faff);
 }
 
+.no-scrollbar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+}
+
 .global-action-bar {
     flex: 0 0 auto;
     width: 100%;
     background-color: var(--surface-color);
     border-top: 1px solid var(--border-color);
-    padding: 10px 20px;
+    padding: 6px 20px;
     display: flex;
     align-items: center;
     justify-content: center;

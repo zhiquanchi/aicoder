@@ -10,9 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	stdruntime "runtime"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -1152,15 +1150,7 @@ func (a *App) getInstalledClaudeVersion(claudePath string) (string, error) {
 	}
 
 	var cmd *exec.Cmd
-	if stdruntime.GOOS == "windows" {
-		cmd = exec.Command("cmd")
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    fmt.Sprintf(`cmd /c ""%s" --version"`, claudePath),
-			HideWindow: true,
-		}
-	} else {
-		cmd = exec.Command(claudePath, "--version")
-	}
+	cmd = createVersionCmd(claudePath)
 	
 	out, err := cmd.Output()
 	if err != nil {
@@ -1185,15 +1175,7 @@ func (a *App) getInstalledClaudeVersion(claudePath string) (string, error) {
 
 func (a *App) getLatestClaudeVersion(npmPath string) (string, error) {
 	var cmd *exec.Cmd
-	if stdruntime.GOOS == "windows" {
-		cmd = exec.Command("cmd")
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    fmt.Sprintf(`cmd /c ""%s" view @anthropic-ai/claude-code version"`, npmPath),
-			HideWindow: true,
-		}
-	} else {
-		cmd = exec.Command(npmPath, "view", "@anthropic-ai/claude-code", "version")
-	}
+	cmd = createNpmViewCmd(npmPath)
 	out, err := cmd.Output()
 	if err != nil {
 		return "", err
