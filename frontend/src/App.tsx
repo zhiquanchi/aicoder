@@ -834,11 +834,6 @@ function App() {
                                     <option value="zh-Hant">繁體中文</option>
                                 </select>
                             </div>
-
-                            <div style={{display: 'flex', gap: '10px', marginTop: '20px'}}>
-                                <button className="btn-link" onClick={() => BrowserOpenURL("https://www.bilibili.com/video/BV1Pt421D7fz")}>{t("manual")}</button>
-                                <button className="btn-link" onClick={() => BrowserOpenURL("https://cs146.com")}>{t("cs146s")}</button>
-                            </div>
                         </div>
                     )}
 
