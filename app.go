@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	stdruntime "runtime"
 	"strings"
 	"syscall"
@@ -312,13 +312,23 @@ func (a *App) syncToClaudeSettings(config AppConfig) error {
 		return err
 	}
 
+	// Check if settings file needs update
+	if existingData, err := os.ReadFile(settingsPath); err == nil {
+		if bytes.Equal(existingData, data) {
+			// Settings file is already up to date, skip main settings write
+			// But still need to update .claude.json for API key responses
+			goto updateLegacyJson
+		}
+	}
+
 	if err := os.WriteFile(settingsPath, data, 0644); err != nil {
 		return err
 	}
 
 	// 2. Sync to ~/.claude.json for customApiKeyResponses
+updateLegacyJson:
 	var claudeJson map[string]interface{}
-	
+
 	if jsonData, err := os.ReadFile(legacyPath); err == nil {
 		json.Unmarshal(jsonData, &claudeJson)
 	}
@@ -334,6 +344,13 @@ func (a *App) syncToClaudeSettings(config AppConfig) error {
 	data2, err := json.MarshalIndent(claudeJson, "", "  ")
 	if err != nil {
 		return err
+	}
+
+	// Check if legacy file needs update
+	if existingData, err := os.ReadFile(legacyPath); err == nil {
+		if bytes.Equal(existingData, data2) {
+			return nil
+		}
 	}
 
 	return os.WriteFile(legacyPath, data2, 0644)
@@ -371,11 +388,21 @@ func (a *App) syncToCodexSettings(config AppConfig) error {
 	if err != nil {
 		return err
 	}
+
+	// Check if auth.json needs update
+	if existingData, err := os.ReadFile(authPath); err == nil {
+		if bytes.Equal(existingData, authJson) {
+			// Auth file is already up to date, skip writing
+			goto writeConfigToml
+		}
+	}
+
 	if err := os.WriteFile(authPath, authJson, 0644); err != nil {
 		return err
 	}
 
 	// Create config.toml
+writeConfigToml:
 	configPath := filepath.Join(dir, "config.toml")
 	baseUrl := selectedModel.ModelUrl
 	if baseUrl == "" {
@@ -394,7 +421,16 @@ base_url = "%s"
 wire_api = "responses"
 `, baseUrl)
 
-	return os.WriteFile(configPath, []byte(configToml), 0644)
+	configBytes := []byte(configToml)
+
+	// Check if config.toml needs update
+	if existingData, err := os.ReadFile(configPath); err == nil {
+		if bytes.Equal(existingData, configBytes) {
+			return nil
+		}
+	}
+
+	return os.WriteFile(configPath, configBytes, 0644)
 }
 
 func (a *App) syncToGeminiSettings(config AppConfig) error {
@@ -426,9 +462,18 @@ func (a *App) syncToGeminiSettings(config AppConfig) error {
 		"baseUrl": selectedModel.ModelUrl,
 	}
 
-	configJson, err := json.MarshalIndent(configData, "", "  ")
+	// Use compact JSON format for faster serialization
+	configJson, err := json.Marshal(configData)
 	if err != nil {
 		return err
+	}
+
+	// Check if file exists and has same content to avoid unnecessary writes
+	if existingData, err := os.ReadFile(configPath); err == nil {
+		if bytes.Equal(existingData, configJson) {
+			// File already has the correct content, skip writing
+			return nil
+		}
 	}
 
 	return os.WriteFile(configPath, configJson, 0644)
@@ -849,69 +894,123 @@ func (a *App) SaveConfig(config AppConfig) error {
 type UpdateResult struct {
 	HasUpdate     bool   `json:"has_update"`
 	LatestVersion string `json:"latest_version"`
+	ReleaseUrl    string `json:"release_url"`
 }
 
 func (a *App) CheckUpdate(currentVersion string) (UpdateResult, error) {
-	url := "https://github.com/RapidAI/cceasy/releases"
-	
+	// Use GitHub API instead of web scraping
+	// Updated URL: aicoder instead of cceasy
+	url := "https://api.github.com/repos/RapidAI/aicoder/releases/latest"
+
+	a.log(fmt.Sprintf("CheckUpdate: Starting check against %s", url))
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return UpdateResult{}, err
+		a.log(fmt.Sprintf("CheckUpdate: Failed to create request: %v", err))
+		return UpdateResult{LatestVersion: "检查失败", ReleaseUrl: ""}, err
 	}
 	req.Header.Set("User-Agent", "AICoder")
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return UpdateResult{}, err
+		a.log(fmt.Sprintf("CheckUpdate: Failed to fetch GitHub API: %v", err))
+		return UpdateResult{LatestVersion: "网络错误", ReleaseUrl: ""}, err
 	}
 	defer resp.Body.Close()
 
+	a.log(fmt.Sprintf("CheckUpdate: HTTP Status: %d", resp.StatusCode))
+
+	// Check HTTP status
+	if resp.StatusCode != 200 {
+		a.log(fmt.Sprintf("CheckUpdate: GitHub API returned status %d", resp.StatusCode))
+		bodyText, _ := io.ReadAll(resp.Body)
+		a.log(fmt.Sprintf("CheckUpdate: Response: %s", string(bodyText[:min(len(bodyText), 200)])))
+		return UpdateResult{LatestVersion: "API错误", ReleaseUrl: ""}, fmt.Errorf("github api returned status %d", resp.StatusCode)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return UpdateResult{}, err
+		a.log(fmt.Sprintf("CheckUpdate: Failed to read response body: %v", err))
+		return UpdateResult{LatestVersion: "读取失败", ReleaseUrl: ""}, err
 	}
 
-	// Regex to find versions in the page text
-	// Matches ">V1.2.1", "> 1.2.2", etc.
-	// We look for a closing tag '>', optional whitespace, optional 'V' or 'v', then the version numbers.
-	// This captures standard semver-ish versions like 1.2, 1.2.1, 1.2.1.1005
-	re := regexp.MustCompile(`>[\s]*[Vv]?(\d+(?:\.\d+)+)`)
-	matches := re.FindAllStringSubmatch(string(body), -1)
+	// Log raw response for debugging
+	a.log(fmt.Sprintf("CheckUpdate: Raw response length: %d bytes", len(body)))
+	a.log(fmt.Sprintf("CheckUpdate: Response body: %s", string(body[:min(len(body), 500)])))
 
-	var highestVersion string
-	
-	for _, match := range matches {
-		if len(match) >= 2 {
-			ver := match[1]
-			// ver is just the number part (e.g. "1.2.1") due to the regex group
-			
-			// If we haven't found a version yet, or this one is higher
-			if highestVersion == "" {
-				highestVersion = ver
-			} else {
-				if compareVersions(ver, highestVersion) > 0 {
-					highestVersion = ver
-				}
-			}
-		}
+	// Parse JSON response
+	var release map[string]interface{}
+	err = json.Unmarshal(body, &release)
+	if err != nil {
+		a.log(fmt.Sprintf("CheckUpdate: Failed to parse JSON: %v", err))
+		a.log(fmt.Sprintf("CheckUpdate: Response body: %s", string(body[:min(len(body), 500)])))
+		return UpdateResult{LatestVersion: "解析失败", ReleaseUrl: ""}, err
 	}
 
-	if highestVersion == "" {
-		return UpdateResult{}, fmt.Errorf("no release versions found")
+	// Log parsed keys
+	a.log(fmt.Sprintf("CheckUpdate: Parsed keys: %v", getMapKeys(release)))
+
+	// Extract version from either 'name' or 'tag_name'
+	var tagName string
+
+	// Try 'tag_name' field first (e.g., "v2.0.0.2")
+	if tag, ok := release["tag_name"].(string); ok && tag != "" {
+		tagName = tag
+		a.log(fmt.Sprintf("CheckUpdate: Found version in 'tag_name' field: %s", tagName))
+	} else if name, ok := release["name"].(string); ok && name != "" {
+		// Fallback to 'name' field (e.g., "V2.0.0.2")
+		tagName = name
+		a.log(fmt.Sprintf("CheckUpdate: Found version in 'name' field: %s", tagName))
+	} else {
+		a.log(fmt.Sprintf("CheckUpdate: Neither 'name' nor 'tag_name' found. Available: %v", release))
+		return UpdateResult{LatestVersion: "找不到版本号", ReleaseUrl: ""}, fmt.Errorf("no version found in release")
 	}
 
-	// Compare versions
+	a.log(fmt.Sprintf("CheckUpdate: Using version: %s", tagName))
+
+	// Extract release URL
+	htmlURL, _ := release["html_url"].(string)
+
+	// Keep original version with V prefix for display
+	displayVersion := strings.TrimSpace(tagName)
+	if !strings.HasPrefix(strings.ToUpper(displayVersion), "V") {
+		displayVersion = "V" + displayVersion
+	}
+
+	// Clean version strings for comparison (lowercase, no V prefix)
+	latestVersionForComparison := strings.TrimPrefix(strings.ToLower(tagName), "v")
 	cleanCurrent := strings.TrimPrefix(strings.ToLower(currentVersion), "v")
 	cleanCurrent = strings.Split(cleanCurrent, " ")[0]
-	
-	// highestVersion is already clean (just numbers and dots) from the regex
-	
-	if compareVersions(highestVersion, cleanCurrent) > 0 {
-		return UpdateResult{HasUpdate: true, LatestVersion: highestVersion}, nil
+
+	// Log for debugging
+	a.log(fmt.Sprintf("CheckUpdate: Latest version: %s, Current version: %s, Display version: %s", latestVersionForComparison, cleanCurrent, displayVersion))
+
+	// Compare versions
+	if compareVersions(latestVersionForComparison, cleanCurrent) > 0 {
+		a.log(fmt.Sprintf("CheckUpdate: Update available! %s > %s", latestVersionForComparison, cleanCurrent))
+		return UpdateResult{HasUpdate: true, LatestVersion: displayVersion, ReleaseUrl: htmlURL}, nil
 	}
 
-	return UpdateResult{HasUpdate: false, LatestVersion: highestVersion}, nil
+	a.log(fmt.Sprintf("CheckUpdate: Already on latest version"))
+	return UpdateResult{HasUpdate: false, LatestVersion: displayVersion, ReleaseUrl: htmlURL}, nil
+}
+
+// Helper function to get map keys
+func getMapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// Helper function for min
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func (a *App) RecoverCC() error {
