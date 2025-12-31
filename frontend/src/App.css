@@ -1,15 +1,15 @@
 :root {
-    --primary-color: #fb923c; /* Orange 400 (Lighter than 500) */
-    --primary-light: #fdba74; /* Orange 300 */
-    --primary-dark: #f97316;  /* Orange 500 */
-    --accent-bg: #fffbf5; /* Even lighter orange tint */
-    --bg-color: #fffdfa; /* Almost white with a hint of orange */
+    --primary-color: #60a5fa; /* Blue 400 (Elegant Light Blue) */
+    --primary-light: #93c5fd; /* Blue 300 */
+    --primary-dark: #3b82f6;  /* Blue 500 */
+    --accent-bg: #f0f7ff; /* Even lighter blue tint */
+    --bg-color: #f8faff; /* Clean white with a hint of blue */
     --surface-color: #ffffff;
-    --text-color: #374151;
-    --text-secondary: #6b7280;
-    --border-color: #ffedd5; /* Orange 100 */
+    --text-color: #1e293b; /* Slate 800 for better contrast with blue */
+    --text-secondary: #64748b; /* Slate 500 */
+    --border-color: #e2e8f0; /* Slate 200 */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(249, 115, 22, 0.08), 0 2px 4px -1px rgba(249, 115, 22, 0.04);
+    --shadow-md: 0 4px 6px -1px rgba(59, 130, 246, 0.08), 0 2px 4px -1px rgba(59, 130, 246, 0.04);
 }
 
 html, body {
@@ -105,15 +105,18 @@ body {
     overflow: hidden;
     background-color: var(--bg-color);
     position: relative; /* For absolute positioning of status message if needed, or footer */
+    margin-top: 20px; /* Shifted down by 20px */
 }
 
 .global-action-bar {
+    min-height: 120px; /* Reliable minimum height */
     width: 100%;
     background-color: var(--surface-color);
     border-top: 1px solid var(--border-color);
     padding: 15px 20px;
     display: flex;
     flex-direction: column;
+    justify-content: center;
     gap: 15px;
     box-sizing: border-box;
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.03);
@@ -144,7 +147,7 @@ body {
 .main-content {
     flex: 1;
     padding: 15px 15px 0 15px;
-    overflow-y: hidden;
+    overflow-y: auto;
     background: linear-gradient(to bottom, #ffffff, #f8faff);
 }
 
@@ -355,15 +358,15 @@ body {
 .btn-launch {
     background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     color: white;
-    padding: 24px 18px; /* Doubled height from 12px */
+    padding: 16px 13px; /* Reduced by ~30% from 24px 18px */
     border: none;
     border-radius: 8px;
-    font-size: 1.2rem; /* Increased from 1rem */
+    font-size: 1.1rem; /* Slightly reduced */
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    width: 100%;
-    margin-top: 0;
+    width: 70%; /* Reduced by 30% from 100% */
+    margin: 0 auto; /* Center the button */
     box-shadow: 0 4px 6px rgba(37, 99, 235, 0.25);
     display: flex;
     align-items: center;
