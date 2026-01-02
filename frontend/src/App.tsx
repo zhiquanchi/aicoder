@@ -16,10 +16,11 @@ const subscriptionUrls: {[key: string]: string} = {
     "minimax": "https://platform.minimaxi.com/user-center/payment/coding-plan",
     "codex": "https://www.aicodemirror.com/register?invitecode=CZPPWZ",
     "gemini": "https://www.aicodemirror.com/register?invitecode=CZPPWZ",
-    "aicodemirror": "https://www.aicodemirror.com/register?invitecode=CZPPWZ"
+    "aicodemirror": "https://www.aicodemirror.com/register?invitecode=CZPPWZ",
+    "aigocode": "https://aigocode.com/invite/TCFQQCCK"
 };
 
-const APP_VERSION = "2.0.0.87";
+const APP_VERSION = "2.0.1.100";
 
 const translations: any = {
     "en": {
@@ -879,6 +880,7 @@ function App() {
                                 borderRadius: '8px',
                                 border: '1px solid var(--border-color)',
                                 fontFamily: 'inherit',
+                                fontSize: '0.9rem',
                                 lineHeight: '1.6',
                                 color: '#374151',
                                 marginBottom: '20px',
@@ -1004,6 +1006,8 @@ function App() {
                                                                                                                                     }}
                                                                                                                                     onContextMenu={(e) => handleContextMenu(e, e.currentTarget)}
                                                                                                                                     style={{fontWeight: 'bold', border: 'none', padding: 0, fontSize: '1rem', width: '120px', flexShrink: 0}}
+                                                                                                                                    spellCheck={false}
+                                                                                                                                    autoComplete="off"
                                                                                                                                 />                                        <div style={{flex: 1, fontSize: '0.85rem', color: '#6b7280', backgroundColor: '#f9fafb', padding: '6px', borderRadius: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
                                             {proj.path}
                                         </div>
@@ -1341,14 +1345,16 @@ function App() {
                         {(config as any)[activeTool].models[activeTab].is_custom && (
                             <div className="form-group">
                                 <label className="form-label">{t("providerName")}</label>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     className="form-input"
                                     data-field="model-name"
-                                    value={(config as any)[activeTool].models[activeTab].model_name} 
+                                    value={(config as any)[activeTool].models[activeTab].model_name}
                                     onChange={(e) => handleModelNameChange(e.target.value)}
                                     onContextMenu={(e) => handleContextMenu(e, e.currentTarget)}
                                     placeholder={t("customProviderPlaceholder")}
+                                    spellCheck={false}
+                                    autoComplete="off"
                                 />
                             </div>
                         )}
@@ -1357,14 +1363,16 @@ function App() {
                             <>
                                 <div className="form-group">
                                     <label className="form-label">{t("modelName")}</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         className="form-input"
                                         data-field="model-id"
-                                        value={(config as any)[activeTool].models[activeTab].model_id} 
+                                        value={(config as any)[activeTool].models[activeTab].model_id}
                                         onChange={(e) => handleModelIdChange(e.target.value)}
                                         onContextMenu={(e) => handleContextMenu(e, e.currentTarget)}
                                         placeholder="e.g. claude-3-5-sonnet-20241022"
+                                        spellCheck={false}
+                                        autoComplete="off"
                                     />
                                 </div>
                                 <div className="form-group">
@@ -1380,27 +1388,31 @@ function App() {
                                             </button>
                                         )}
                                     </div>
-                                    <input 
-                                        type="password" 
+                                    <input
+                                        type="password"
                                         className="form-input"
                                         data-field="api-key"
-                                        value={(config as any)[activeTool].models[activeTab].api_key} 
+                                        value={(config as any)[activeTool].models[activeTab].api_key}
                                         onChange={(e) => handleApiKeyChange(e.target.value)}
                                         onContextMenu={(e) => handleContextMenu(e, e.currentTarget)}
                                         placeholder={t("enterKey")}
+                                        spellCheck={false}
+                                        autoComplete="off"
                                     />
                                 </div>
                                                             
                                 <div className="form-group">
                                     <label className="form-label">{t("apiEndpoint")}</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         className="form-input"
                                         data-field="api-url"
-                                        value={(config as any)[activeTool].models[activeTab].model_url} 
+                                        value={(config as any)[activeTool].models[activeTab].model_url}
                                         onChange={(e) => handleModelUrlChange(e.target.value)}
                                         onContextMenu={(e) => handleContextMenu(e, e.currentTarget)}
                                         placeholder="https://api.example.com/v1"
+                                        spellCheck={false}
+                                        autoComplete="off"
                                     />
                                 </div>
                             </>

@@ -403,11 +403,33 @@ func (a *App) syncToCodexSettings(config AppConfig) error {
 writeConfigToml:
 	configPath := filepath.Join(dir, "config.toml")
 	baseUrl := selectedModel.ModelUrl
-	if baseUrl == "" {
-		baseUrl = "https://api.aicodemirror.com/api/codex/backend-api/codex"
-	}
+	
+	var configToml string
+	if strings.ToLower(selectedModel.ModelName) == "aigocode" {
+		if baseUrl == "" {
+			baseUrl = "https://api.aigocode.com/openai"
+		}
+		modelId := selectedModel.ModelId
+		if modelId == "" {
+			modelId = "gpt-5-codex"
+		}
+		configToml = fmt.Sprintf(`model_provider = "aigocode"
+model = "%s"
+model_reasoning_effort = "high"
+disable_response_storage = true
+preferred_auth_method = "apikey"
 
-	configToml := fmt.Sprintf(`model_provider = "aicodemirror"
+[model_providers.aigocode]
+name = "aigocode"
+base_url = "%s"
+wire_api = "responses"
+requires_openai_auth = true
+`, modelId, baseUrl)
+	} else {
+		if baseUrl == "" {
+			baseUrl = "https://api.aicodemirror.com/api/codex/backend-api/codex"
+		}
+		configToml = fmt.Sprintf(`model_provider = "aicodemirror"
 model = "%s"
 model_reasoning_effort = "xhigh"
 disable_response_storage = true
@@ -418,6 +440,7 @@ name = "aicodemirror"
 base_url = "%s"
 wire_api = "responses"
 `, selectedModel.ModelId, baseUrl)
+	}
 
 	configBytes := []byte(configToml)
 
@@ -656,16 +679,19 @@ func (a *App) LoadConfig() (AppConfig, error) {
 		{ModelName: "kimi", ModelId: "kimi-k2-thinking", ModelUrl: "https://api.kimi.com/coding", ApiKey: ""},
 		{ModelName: "doubao", ModelId: "doubao-seed-code-preview-latest", ModelUrl: "https://ark.cn-beijing.volces.com/api/coding", ApiKey: ""},
 		{ModelName: "MiniMax", ModelId: "MiniMax-M2.1", ModelUrl: "https://api.minimaxi.com/anthropic", ApiKey: ""},
+		{ModelName: "AIgoCode", ModelId: "claude-3-5-sonnet-20241022", ModelUrl: "https://api.aigocode.com/api", ApiKey: ""},
 		{ModelName: "AICodeMirror", ModelId: "Haiku", ModelUrl: "https://api.aicodemirror.com/api/claudecode", ApiKey: ""},
 		{ModelName: "Custom", ModelId: "", ModelUrl: "", ApiKey: "", IsCustom: true},
 	}
 	defaultGeminiModels := []ModelConfig{
 		{ModelName: "Original", ModelId: "", ModelUrl: "", ApiKey: ""},
+		{ModelName: "AIgoCode", ModelId: "gemini-2.0-flash-exp", ModelUrl: "https://api.aigocode.com/gemini", ApiKey: ""},
 		{ModelName: "AiCodeMirror", ModelId: "gemini-2.0-flash-exp", ModelUrl: "https://api.aicodemirror.com/api/gemini", ApiKey: ""},
 		{ModelName: "Custom", ModelId: "", ModelUrl: "", ApiKey: "", IsCustom: true},
 	}
 	defaultCodexModels := []ModelConfig{
 		{ModelName: "Original", ModelId: "", ModelUrl: "", ApiKey: ""},
+		{ModelName: "AIgoCode", ModelId: "gpt-5-codex", ModelUrl: "https://api.aigocode.com/openai", ApiKey: ""},
 		{ModelName: "AiCodeMirror", ModelId: "gpt-5.2-codex", ModelUrl: "https://api.aicodemirror.com/api/codex/backend-api/codex", ApiKey: ""},
 		{ModelName: "Custom", ModelId: "", ModelUrl: "", ApiKey: "", IsCustom: true},
 	}
@@ -755,63 +781,17 @@ func (a *App) LoadConfig() (AppConfig, error) {
 		config.Claude.CurrentModel = config.Claude.Models[0].ModelName
 	}
 	
-	// Inject AiCodeMirror if missing
-	ensureAiCodeMirror := func(models *[]ModelConfig, name, url string, strictlyOnly bool) {
-		if strictlyOnly {
-			// For Gemini/Codex, we keep Original, AiCodeMirror AND Custom
-			var newModels []ModelConfig
-			foundOriginal := false
-			foundName := false
-			foundCustom := false
-			for _, m := range *models {
-				if m.ModelName == "Original" {
-					newModels = append(newModels, m)
-					foundOriginal = true
-				} else if m.ModelName == name || m.ModelName == "AiCodeMirror" {
-					newModels = append(newModels, m)
-					foundName = true
-				} else if m.IsCustom || m.ModelName == "Custom" {
-					newModels = append(newModels, m)
-					foundCustom = true
-				}
-			}
-			if !foundOriginal {
-				// Insert Original at the beginning
-				newModels = append([]ModelConfig{{ModelName: "Original", ModelUrl: "", ApiKey: ""}}, newModels...)
-			}
-			if !foundName {
-				newModels = append(newModels, ModelConfig{ModelName: name, ModelUrl: url, ApiKey: ""})
-			}
-			if !foundCustom {
-				newModels = append(newModels, ModelConfig{ModelName: "Custom", ModelUrl: "", ApiKey: "", IsCustom: true})
-			}
-			*models = newModels
-			return
-		}
-
+	// Helper to ensure a model exists in the list
+	ensureModel := func(models *[]ModelConfig, name, url string) {
 		found := false
-		foundCustom := false
-		foundOriginal := false
 		for _, m := range *models {
 			if m.ModelName == name {
 				found = true
+				break
 			}
-			if m.IsCustom || m.ModelName == "Custom" {
-				foundCustom = true
-			}
-			if m.ModelName == "Original" {
-				foundOriginal = true
-			}
-		}
-		if !foundOriginal {
-			// Insert Original at the beginning
-			*models = append([]ModelConfig{{ModelName: "Original", ModelUrl: "", ApiKey: ""}}, *models...)
 		}
 		if !found {
 			*models = append(*models, ModelConfig{ModelName: name, ModelUrl: url, ApiKey: ""})
-		}
-		if !foundCustom {
-			*models = append(*models, ModelConfig{ModelName: "Custom", ModelUrl: "", ApiKey: "", IsCustom: true})
 		}
 	}
 
@@ -824,9 +804,47 @@ func (a *App) LoadConfig() (AppConfig, error) {
 		config.Codex.CurrentModel = "AiCodeMirror"
 	}
 
-	ensureAiCodeMirror(&config.Claude.Models, "AiCodeMirror", "https://api.aicodemirror.com/api/claudecode", false)
-	ensureAiCodeMirror(&config.Gemini.Models, "AiCodeMirror", "https://api.aicodemirror.com/api/gemini", true)
-	ensureAiCodeMirror(&config.Codex.Models, "AiCodeMirror", "https://api.aicodemirror.com/api/codex/backend-api/codex", true)
+	ensureModel(&config.Claude.Models, "AiCodeMirror", "https://api.aicodemirror.com/api/claudecode")
+	ensureModel(&config.Gemini.Models, "AiCodeMirror", "https://api.aicodemirror.com/api/gemini")
+	ensureModel(&config.Codex.Models, "AiCodeMirror", "https://api.aicodemirror.com/api/codex/backend-api/codex")
+
+	ensureModel(&config.Claude.Models, "AIgoCode", "https://api.aigocode.com/api")
+	ensureModel(&config.Gemini.Models, "AIgoCode", "https://api.aigocode.com/gemini")
+	ensureModel(&config.Codex.Models, "AIgoCode", "https://api.aigocode.com/openai")
+
+	// Ensure 'Original' is always present and first
+	ensureOriginal := func(models *[]ModelConfig) {
+		found := false
+		for _, m := range *models {
+			if m.ModelName == "Original" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			*models = append([]ModelConfig{{ModelName: "Original", ModelUrl: "", ApiKey: ""}}, *models...)
+		}
+	}
+	ensureOriginal(&config.Claude.Models)
+	ensureOriginal(&config.Gemini.Models)
+	ensureOriginal(&config.Codex.Models)
+
+	// Ensure 'Custom' is always present
+	ensureCustom := func(models *[]ModelConfig) {
+		found := false
+		for _, m := range *models {
+			if m.ModelName == "Custom" || m.IsCustom {
+				found = true
+				break
+			}
+		}
+		if !found {
+			*models = append(*models, ModelConfig{ModelName: "Custom", ModelUrl: "", ApiKey: "", IsCustom: true})
+		}
+	}
+	ensureCustom(&config.Claude.Models)
+	ensureCustom(&config.Gemini.Models)
+	ensureCustom(&config.Codex.Models)
 
 	// Ensure 'Custom' is always last for all tools
 	moveCustomToLast := func(models *[]ModelConfig) {
@@ -886,14 +904,70 @@ func (a *App) LoadConfig() (AppConfig, error) {
 	return config, nil
 }
 
-func (a *App) SaveConfig(config AppConfig) error {
-	path, err := a.getConfigPath()
-	if err != nil {
-		return err
+// getProviderApiKey gets the apikey for a specific provider name from a tool config
+func getProviderApiKey(toolConfig *ToolConfig, providerName string) string {
+	for i := range toolConfig.Models {
+		model := &toolConfig.Models[i]
+		if strings.EqualFold(model.ModelName, providerName) {
+			return model.ApiKey
+		}
+	}
+	return ""
+}
+
+// syncProviderApiKey synchronizes the apikey of a specific provider across all tools
+func syncProviderApiKey(a *App, oldConfig, newConfig *AppConfig, providerName string) {
+	newClaudeKey := getProviderApiKey(&newConfig.Claude, providerName)
+	newGeminiKey := getProviderApiKey(&newConfig.Gemini, providerName)
+	newCodexKey := getProviderApiKey(&newConfig.Codex, providerName)
+
+	oldClaudeKey := getProviderApiKey(&oldConfig.Claude, providerName)
+	oldGeminiKey := getProviderApiKey(&oldConfig.Gemini, providerName)
+	oldCodexKey := getProviderApiKey(&oldConfig.Codex, providerName)
+
+	var updatedApiKey string
+	found := false
+
+	if newClaudeKey != oldClaudeKey {
+		updatedApiKey = newClaudeKey
+		found = true
+		a.log(fmt.Sprintf("Sync: detected %s change in Claude", providerName))
+	} else if newGeminiKey != oldGeminiKey {
+		updatedApiKey = newGeminiKey
+		found = true
+		a.log(fmt.Sprintf("Sync: detected %s change in Gemini", providerName))
+	} else if newCodexKey != oldCodexKey {
+		updatedApiKey = newCodexKey
+		found = true
+		a.log(fmt.Sprintf("Sync: detected %s change in Codex", providerName))
 	}
 
-	data, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
+	if found {
+		a.log(fmt.Sprintf("Sync: propagating %s apikey to all tools", providerName))
+		for _, toolCfg := range []*ToolConfig{&newConfig.Claude, &newConfig.Gemini, &newConfig.Codex} {
+			for i := range toolCfg.Models {
+				if strings.EqualFold(toolCfg.Models[i].ModelName, providerName) {
+					toolCfg.Models[i].ApiKey = updatedApiKey
+				}
+			}
+		}
+	}
+}
+
+func (a *App) SaveConfig(config AppConfig) error {
+	// Load old config to compare for sync logic
+	// We use a direct read here to avoid the injection logic in LoadConfig for comparison
+	var oldConfig AppConfig
+	path, _ := a.getConfigPath()
+	if data, err := os.ReadFile(path); err == nil {
+		json.Unmarshal(data, &oldConfig)
+	}
+
+	// Sync apikeys across all tools before saving
+	syncProviderApiKey(a, &oldConfig, &config, "AiCodeMirror")
+	syncProviderApiKey(a, &oldConfig, &config, "AIgoCode")
+
+	if err := a.saveToPath(path, config); err != nil {
 		return err
 	}
 
@@ -901,6 +975,14 @@ func (a *App) SaveConfig(config AppConfig) error {
 		OnConfigChanged(config)
 	}
 
+	return nil
+}
+
+func (a *App) saveToPath(path string, config AppConfig) error {
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return err
+	}
 	return os.WriteFile(path, data, 0644)
 }
 
