@@ -20,7 +20,7 @@ const subscriptionUrls: {[key: string]: string} = {
     "aigocode": "https://aigocode.com/invite/TCFQQCCK"
 };
 
-const APP_VERSION = "2.0.1.115";
+const APP_VERSION = "2.0.1.119";
 
 const translations: any = {
     "en": {
@@ -170,7 +170,7 @@ const translations: any = {
         "contextPaste": "粘贴",
         "refreshMessage": "刷新消息",
         "refreshing": "🔄 正在从服务器获取最新消息...",
-        "refreshSuccess": "✅ 刷新成功！",
+        "refreshSuccess": "✅ 获取新消息成功",
         "refreshFailed": "❌ 刷新失败：",
         "lastUpdate": "最后更新：",
         "forward": "转发服务",
@@ -247,7 +247,7 @@ const translations: any = {
         "contextPaste": "粘貼",
         "refreshMessage": "刷新消息",
         "refreshing": "🔄 正在从服务器获取最新消息...",
-        "refreshSuccess": "✅ 刷新成功！",
+        "refreshSuccess": "✅ 獲取新消息成功",
         "refreshFailed": "❌ 刷新失敗：",
         "lastUpdate": "最後更新：",
         "forward": "轉發服務",
@@ -994,7 +994,7 @@ function App() {
                                         const now = new Date();
                                         const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
-                                        setRefreshStatus(`${t("refreshSuccess")} ${elapsed}ms | 长度：${content.length} 字符 | 开头：${preview}...`);
+                                        setRefreshStatus(t("refreshSuccess"));
                                         // Set new content and increment key to force re-render
                                         setBbsContent(content);
                                         setRefreshKey(prev => prev + 1);

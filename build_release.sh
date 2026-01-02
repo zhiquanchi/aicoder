@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Set minimum macOS version to 10.15 (Catalina)
+# We use -weak_framework for UniformTypeIdentifiers to allow running on 10.15
+export MACOSX_DEPLOYMENT_TARGET=10.15
+
 APP_NAME="AICoder"
 # Read version from build_number if exists, else default
 if [ -f "build_number" ]; then
@@ -49,11 +53,11 @@ echo "[2/4] Compiling Go Binaries..."
 
 # Build AMD64
 echo "  - Building for amd64..."
-CGO_ENABLED=1 CGO_LDFLAGS="-framework UniformTypeIdentifiers" GOOS=darwin GOARCH=amd64 go build -tags desktop,production -o "${BIN_DIR}/${APP_NAME}_amd64"
+CGO_ENABLED=1 CGO_LDFLAGS="-weak_framework UniformTypeIdentifiers" GOOS=darwin GOARCH=amd64 go build -tags desktop,production -o "${BIN_DIR}/${APP_NAME}_amd64"
 
 # Build ARM64
 echo "  - Building for arm64..."
-CGO_ENABLED=1 CGO_LDFLAGS="-framework UniformTypeIdentifiers" GOOS=darwin GOARCH=arm64 go build -tags desktop,production -o "${BIN_DIR}/${APP_NAME}_arm64"
+CGO_ENABLED=1 CGO_LDFLAGS="-weak_framework UniformTypeIdentifiers" GOOS=darwin GOARCH=arm64 go build -tags desktop,production -o "${BIN_DIR}/${APP_NAME}_arm64"
 
 # Generate ICNS
 echo "  - Generating .icns file..."
@@ -115,7 +119,7 @@ create_app_bundle() {
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>LSMinimumSystemVersion</key>
-    <string>10.13.0</string>
+    <string>10.15.0</string>
     <key>NSHighResolutionCapable</key>
     <string>true</string>
     <key>NSHumanReadableCopyright</key>
