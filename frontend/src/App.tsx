@@ -20,7 +20,7 @@ const subscriptionUrls: {[key: string]: string} = {
     "aigocode": "https://aigocode.com/invite/TCFQQCCK"
 };
 
-const APP_VERSION = "2.0.1.114";
+const APP_VERSION = "2.0.1.115";
 
 const translations: any = {
     "en": {
@@ -880,26 +880,26 @@ function App() {
                     <span className="sidebar-title">AICoder</span>
                 </div>
                 <div className={`sidebar-item ${navTab === 'message' ? 'active' : ''}`} onClick={() => switchTool('message')}>
-                    <span className="sidebar-icon">💬</span> {t("message")}
+                    <span className="sidebar-icon">💬</span> <span>{t("message")}</span>
                 </div>
                 <div className={`sidebar-item ${navTab === 'claude' ? 'active' : ''}`} onClick={() => switchTool('claude')}>
-                    <span className="sidebar-icon">🤖</span> Claude
+                    <span className="sidebar-icon">🤖</span> <span>Claude</span>
                 </div>
                 <div className={`sidebar-item ${navTab === 'gemini' ? 'active' : ''}`} onClick={() => switchTool('gemini')}>
-                    <span className="sidebar-icon">♊</span> Gemini
+                    <span className="sidebar-icon">♊</span> <span>Gemini</span>
                 </div>
                 <div className={`sidebar-item ${navTab === 'codex' ? 'active' : ''}`} onClick={() => switchTool('codex')}>
-                    <span className="sidebar-icon">💻</span> CodeX
+                    <span className="sidebar-icon">💻</span> <span>CodeX</span>
                 </div>
                 <div style={{height: '20px'}}></div>
                 <div className={`sidebar-item ${navTab === 'projects' ? 'active' : ''}`} onClick={() => switchTool('projects')}>
-                    <span className="sidebar-icon">📂</span> {t("manageProjects")}
+                    <span className="sidebar-icon">📂</span> <span style={{maxWidth: lang === 'en' ? '110px' : 'none'}}>{t("manageProjects")}</span>
                 </div>
                 <div className={`sidebar-item ${navTab === 'settings' ? 'active' : ''}`} onClick={() => switchTool('settings')}>
-                    <span className="sidebar-icon">⚙️</span> {t("settings")}
+                    <span className="sidebar-icon">⚙️</span> <span style={{maxWidth: lang === 'en' ? '110px' : 'none'}}>{t("settings")}</span>
                 </div>
                 <div className={`sidebar-item ${navTab === 'about' ? 'active' : ''}`} onClick={() => switchTool('about')}>
-                    <span className="sidebar-icon">ℹ️</span> {t("about")}
+                    <span className="sidebar-icon">ℹ️</span> <span>{t("about")}</span>
                 </div>
             </div>
 
@@ -1261,7 +1261,7 @@ function App() {
                                 <button
                                     onClick={() => switchTool('projects')}
                                     style={{
-                                        padding: '6px 14px',
+                                        padding: '4px 14px',
                                         borderRadius: '6px',
                                         border: '1px solid #d1d5db',
                                         backgroundColor: '#f3f4f6',
@@ -1270,7 +1270,13 @@ function App() {
                                         fontWeight: '500',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s',
-                                        whiteSpace: 'nowrap'
+                                        whiteSpace: 'normal',
+                                        textAlign: 'left',
+                                        lineHeight: '1.2',
+                                        width: lang === 'en' ? '100px' : 'auto',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'flex-start'
                                     }}
                                     onMouseEnter={(e) => {
                                         e.currentTarget.style.backgroundColor = '#e5e7eb';
