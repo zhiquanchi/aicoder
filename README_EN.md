@@ -16,8 +16,12 @@ This application is deeply integrated with popular AI programming models, suppor
     *   **Independent Configuration**: Each project can have its own working directory and launch parameters (e.g., Yolo Mode).
 *   **🔄 Multi-Model & Cross-Platform Support**:
     *   Integrated with **Claude Code**, **OpenAI Codex**, and **Google Gemini CLI**.
-    *   Supports **Custom** mode for connecting to compatible API endpoints.
-    *   **Instant Sync**: Automatically updates configuration files and system environment variables.
+    *   **"Original" Provider Mode**: One-click switch back to official configurations. Automatically clears custom proxy settings to ensure a pure official tool experience.
+    *   **Deep Provider Integration**: Pre-configured support for mainstream providers including GLM, Kimi, Doubao, MiniMax, AIgoCode, and AiCodeMirror.
+    *   **Smart Sync**: API Keys for the same provider are automatically synchronized across different tools.
+    *   **Custom Mode**: Connect to any compatible API endpoint.
+*   **📢 Real-time Announcements (BBS)**: Built-in message center to stay updated with the latest tool news and community announcements.
+*   **🛠️ One-Click Repair**: Provides configuration reset and repair functionality for tools like Claude Code to resolve environment conflicts.
 *   **🌍 Multi-language Support**: Interface supports English, Simplified Chinese, Traditional Chinese, Korean, Japanese, German, and French.
 *   **🖱️ System Tray Support**: Quick model switching, one-click launch, and quitting the application.
 *   **⚡ One-Click Launch**: Large buttons to launch the respective CLI tool with pre-configured environments and authentication.
@@ -25,13 +29,14 @@ This application is deeply integrated with popular AI programming models, suppor
 ## Quick Start
 
 ### 1. Run the Program
-Run `AICoder.exe` directly.
+Run `AICoder.exe` (Windows) or `AICoder.app` (macOS) directly.
 
 ### 2. Environment Detection
-On the first launch, the program performs an environment self-check. If required runtimes or tools are missing, AICoder will attempt to install them automatically.
+On the first launch, the program performs an environment self-check. If required runtimes (e.g., Node.js) are missing, AICoder will attempt to install them automatically.
 
 ### 3. Configure API Key
-Enter your API Key in the configuration panel for each tool.
+Select a provider and enter your API Key in the configuration panel for each tool.
+*   **Sync Feature**: When you set a Key for a provider in Claude, it will automatically sync to the same provider in Gemini and Codex.
 *   If you don't have a Key yet, click the **"Get Key"** button next to the input field to jump to the respective provider's application page.
 
 ### 4. Switch and Launch
@@ -41,9 +46,9 @@ Enter your API Key in the configuration panel for each tool.
 
 ## About
 
-*   **Version**: V2.0.0.2
+*   **Version**: V2.0.1.122
 *   **Author**: Dr. Daniel
-*   **GitHub**: [RapidAI/cceasy](https://github.com/RapidAI/cceasy)
+*   **GitHub**: [RapidAI/aicoder](https://github.com/RapidAI/aicoder)
 *   **Resources**: [CS146s Chinese Version](https://github.com/BIT-ENGD/cs146s_cn)
 
 ---
