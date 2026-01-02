@@ -22,7 +22,7 @@ This application is deeply integrated with popular AI programming models, suppor
     *   **Custom Mode**: Connect to any compatible API endpoint.
 *   **📢 Real-time Announcements (BBS)**: Built-in message center to stay updated with the latest tool news and community announcements.
 *   **🛠️ One-Click Repair**: Provides configuration reset and repair functionality for tools like Claude Code to resolve environment conflicts.
-*   **🌍 Multi-language Support**: Interface supports English, Simplified Chinese, Traditional Chinese, Korean, Japanese, German, and French.
+*   **🌍 Multi-language Support**: Interface supports English, Simplified Chinese, and Traditional Chinese.
 *   **🖱️ System Tray Support**: Quick model switching, one-click launch, and quitting the application.
 *   **⚡ One-Click Launch**: Large buttons to launch the respective CLI tool with pre-configured environments and authentication.
 
