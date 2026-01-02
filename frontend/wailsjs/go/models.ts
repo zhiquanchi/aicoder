@@ -77,6 +77,7 @@ export namespace main {
 	    projects: ProjectConfig[];
 	    current_project: string;
 	    active_tool: string;
+	    hide_startup_popup: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
@@ -90,6 +91,7 @@ export namespace main {
 	        this.projects = this.convertValues(source["projects"], ProjectConfig);
 	        this.current_project = source["current_project"];
 	        this.active_tool = source["active_tool"];
+	        this.hide_startup_popup = source["hide_startup_popup"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

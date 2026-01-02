@@ -20,13 +20,12 @@ const subscriptionUrls: {[key: string]: string} = {
     "aigocode": "https://aigocode.com/invite/TCFQQCCK"
 };
 
-const APP_VERSION = "2.0.1.101";
+const APP_VERSION = "2.0.1.111";
 
 const translations: any = {
     "en": {
         "title": "AICoder",
         "about": "About",
-        "manual": "Manual",
         "cs146s": "Online Course",
         "faq": "FAQ",
         "hide": "Hide",
@@ -89,13 +88,22 @@ const translations: any = {
         "copy": "Copy",
         "cut": "Cut",
         "contextPaste": "Paste",
+        "forward": "Relay",
+        "quickStart": "Tutorial",
+        "manual": "Documentation",
+        "dontShowAgain": "Don't show again",
+        "showWelcomePage": "Show Welcome Page",
         "refreshMessage": "Refresh Message",
-        "forward": "Relay"
+        "refreshing": "🔄 Fetching latest messages...",
+        "refreshSuccess": "✅ Refresh successful!",
+        "refreshFailed": "❌ Refresh failed: ",
+        "lastUpdate": "Last Update: ",
+        "startupTitle": "Welcome to AICoder"
     },
     "zh-Hans": {
         "title": "AICoder",
         "about": "关于",
-        "manual": "使用说明",
+        "manual": "文档指南",
         "cs146s": "在线课程",
         "faq": "常见问题",
         "hide": "隐藏",
@@ -157,14 +165,22 @@ const translations: any = {
         "selectAll": "全选",
         "copy": "复制",
         "cut": "剪切",
-        "contextPaste": "Paste",
-        "refreshMessage": "Refresh Message",
-        "forward": "转发服务"
+        "contextPaste": "粘贴",
+        "refreshMessage": "刷新消息",
+        "refreshing": "🔄 正在从服务器获取最新消息...",
+        "refreshSuccess": "✅ 刷新成功！",
+        "refreshFailed": "❌ 刷新失败：",
+        "lastUpdate": "最后更新：",
+        "forward": "转发服务",
+        "quickStart": "新手教学",
+        "dontShowAgain": "下次不再显示",
+        "showWelcomePage": "显示欢迎页",
+        "startupTitle": "欢迎使用 AICoder"
     },
     "zh-Hant": {
         "title": "AICoder",
         "about": "關於",
-        "manual": "使用說明",
+        "manual": "文檔指南",
         "cs146s": "線上課程",
         "faq": "常見問題",
         "hide": "隱藏",
@@ -226,7 +242,15 @@ const translations: any = {
         "cut": "剪切",
         "contextPaste": "粘貼",
         "refreshMessage": "刷新消息",
-        "forward": "轉發服務"
+        "refreshing": "🔄 正在从服务器获取最新消息...",
+        "refreshSuccess": "✅ 刷新成功！",
+        "refreshFailed": "❌ 刷新失敗：",
+        "lastUpdate": "最後更新：",
+        "forward": "轉發服務",
+        "quickStart": "新手教學",
+        "dontShowAgain": "下次不再顯示",
+        "showWelcomePage": "顯示歡迎頁",
+        "startupTitle": "歡迎使用 AICoder"
     }
 };
 
@@ -315,6 +339,7 @@ function App() {
     const [activeTab, setActiveTab] = useState(0);
     const [tabStartIndex, setTabStartIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [showStartupPopup, setShowStartupPopup] = useState(false);
 
     useEffect(() => {
         // activeTab 0 is Original (hidden), so configurable models start at 1.
@@ -468,30 +493,34 @@ function App() {
         // Config Logic
         LoadConfig().then((cfg) => {
             setConfig(cfg);
+            if (cfg && !cfg.hide_startup_popup) {
+                setShowStartupPopup(true);
+            }
             if (cfg && cfg.current_project) {
                 setSelectedProjectForLaunch(cfg.current_project);
             } else if (cfg && cfg.projects && cfg.projects.length > 0) {
                 setSelectedProjectForLaunch(cfg.projects[0].id);
             }
             if (cfg) {
-                const tool = cfg.active_tool || "message";
+                // Default to message tab on startup as requested
+                const tool = "message";
                 setNavTab(tool);
-                if (tool === 'claude' || tool === 'gemini' || tool === 'codex') {
-                    setActiveTool(tool);
+                
+                // Keep track of the last active tool for settings/launch logic
+                const lastActiveTool = cfg.active_tool || "claude";
+                if (lastActiveTool === 'claude' || lastActiveTool === 'gemini' || lastActiveTool === 'codex') {
+                    setActiveTool(lastActiveTool);
                 }
                 
-                if (tool === 'message') {
-                    ReadBBS().then(content => setBbsContent(content)).catch(err => console.error(err));
-                }
+                ReadBBS().then(content => setBbsContent(content)).catch(err => console.error(err));
                 
-                const toolCfg = (cfg as any)[tool];
+                const toolCfg = (cfg as any)[lastActiveTool];
                 if (toolCfg && toolCfg.models) {
                     const idx = toolCfg.models.findIndex((m: any) => m.model_name === toolCfg.current_model);
                     if (idx !== -1) setActiveTab(idx);
 
                     // Check if any model has an API key configured for the active tool
-                    // Only for tools (claude, gemini, codex)
-                    if (tool === 'claude' || tool === 'gemini' || tool === 'codex') {
+                    if (lastActiveTool === 'claude' || lastActiveTool === 'gemini' || lastActiveTool === 'codex') {
                         const hasAnyApiKey = toolCfg.models.some((m: any) => m.api_key && m.api_key.trim() !== "");
                         if (!hasAnyApiKey) {
                             setShowModelSettings(true);
@@ -931,7 +960,7 @@ function App() {
                                         fontSize: '0.85rem',
                                         textAlign: 'right'
                                     }}>
-                                        最后更新：{lastUpdateTime}
+                                        {t("lastUpdate")}{lastUpdateTime}
                                     </div>
                                 )}
                                 <ReactMarkdown
@@ -947,7 +976,7 @@ function App() {
                             <div style={{display: 'flex', gap: '15px', justifyContent: 'center', marginBottom: '20px'}}>
                                 <button className="btn-link" onClick={async () => {
                                     try {
-                                        setRefreshStatus('🔄 正在从服务器获取最新消息...');
+                                        setRefreshStatus(t("refreshing"));
                                         // Clear content first to ensure re-render
                                         setBbsContent('');
                                         const startTime = Date.now();
@@ -959,14 +988,14 @@ function App() {
                                         const now = new Date();
                                         const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
-                                        setRefreshStatus(`✅ 刷新成功！用时 ${elapsed}ms | 长度：${content.length} 字符 | 开头：${preview}...`);
+                                        setRefreshStatus(`${t("refreshSuccess")} ${elapsed}ms | 长度：${content.length} 字符 | 开头：${preview}...`);
                                         // Set new content and increment key to force re-render
                                         setBbsContent(content);
                                         setRefreshKey(prev => prev + 1);
                                         setLastUpdateTime(timeStr);
                                         setTimeout(() => setRefreshStatus(''), 5000);
                                     } catch (err) {
-                                        setRefreshStatus('❌ 刷新失败：' + err);
+                                        setRefreshStatus(t("refreshFailed") + err);
                                         setTimeout(() => setRefreshStatus(''), 5000);
                                     }
                                 }}>{t("refreshMessage")}</button>
@@ -1077,6 +1106,28 @@ function App() {
                                     <option value="zh-Hans">简体中文</option>
                                     <option value="zh-Hant">繁體中文</option>
                                 </select>
+                            </div>
+                            <div className="form-group" style={{marginTop: '20px'}}>
+                                <label style={{display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer'}}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={!config?.hide_startup_popup}
+                                        onChange={(e) => {
+                                            if (config) {
+                                                const newConfig = new main.AppConfig({...config, hide_startup_popup: !e.target.checked});
+                                                setConfig(newConfig);
+                                                SaveConfig(newConfig);
+                                            }
+                                        }}
+                                        style={{width: '18px', height: '18px'}}
+                                    />
+                                    <span style={{fontSize: '1rem', color: '#374151'}}>{t("showWelcomePage")}</span>
+                                </label>
+                                <p style={{fontSize: '0.85rem', color: '#64748b', marginLeft: '28px', marginTop: '5px'}}>
+                                    {lang === 'zh-Hans' ? '开启后，程序启动时将显示新手教学和快速入门链接' : 
+                                     lang === 'zh-Hant' ? '開啟後，程序啟動時將顯示新手教學和快速入門鏈接' : 
+                                     'When enabled, a welcome popup with tutorial links will be shown at startup.'}
+                                </p>
                             </div>
                         </div>
                     )}
@@ -1466,6 +1517,120 @@ function App() {
                     <div className="context-menu-item" onClick={() => handleContextAction('copy')}>{t("copy")}</div>
                     <div className="context-menu-item" onClick={() => handleContextAction('cut')}>{t("cut")}</div>
                     <div className="context-menu-item" onClick={() => handleContextAction('paste')}>{t("contextPaste")}</div>
+                </div>
+            )}
+
+            {showStartupPopup && (
+                <div className="modal-overlay" style={{backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)'}}>
+                    <div className="modal-content" style={{
+                        width: '380px', 
+                        textAlign: 'center', 
+                        padding: 0, 
+                        borderRadius: '16px',
+                        overflow: 'hidden',
+                        border: 'none',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                    }}>
+                        <div style={{
+                            background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
+                            padding: '30px 20px',
+                            color: 'white',
+                            position: 'relative'
+                        }}>
+                            <button 
+                                className="modal-close" 
+                                onClick={() => setShowStartupPopup(false)}
+                                style={{color: 'white', opacity: 0.8, top: '10px', right: '15px'}}
+                            >&times;</button>
+                            <div style={{fontSize: '3rem', marginBottom: '10px'}}>🚀</div>
+                            <h3 style={{margin: 0, color: 'white', fontSize: '1.5rem', fontWeight: 'bold'}}>{t("startupTitle")}</h3>
+                            <p style={{margin: '10px 0 0 0', opacity: 0.9, fontSize: '0.9rem'}}>开启您的 AI 辅助编程之旅</p>
+                        </div>
+                        
+                        <div style={{padding: '30px 25px'}}>
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '25px'}}>
+                                <button 
+                                    className="btn-primary" 
+                                    style={{
+                                        width: '100%', 
+                                        padding: '12px', 
+                                        borderRadius: '10px',
+                                        fontSize: '1rem',
+                                        fontWeight: '600',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '10px',
+                                        boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)'
+                                    }}
+                                    onClick={() => {
+                                        BrowserOpenURL("https://www.bilibili.com/video/BV1wmvoBnEF1");
+                                    }}
+                                >
+                                    <span>🎬</span> {t("quickStart")}
+                                </button>
+                                <button 
+                                    className="btn-link" 
+                                    style={{
+                                        padding: '12px', 
+                                        border: '1px solid #e2e8f0', 
+                                        borderRadius: '10px',
+                                        fontSize: '1rem',
+                                        fontWeight: '500',
+                                        color: '#475569',
+                                        backgroundColor: '#f8fafc',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '10px'
+                                    }}
+                                    onClick={() => {
+                                        const manualUrl = (lang === 'zh-Hans' || lang === 'zh-Hant')
+                                            ? "https://github.com/RapidAI/aicoder/blob/main/UserManual_CN.md"
+                                            : "https://github.com/RapidAI/aicoder/blob/main/UserManual_EN.md";
+                                        BrowserOpenURL(manualUrl);
+                                    }}
+                                >
+                                    <span>📖</span> {t("manual")}
+                                </button>
+                            </div>
+
+                            <div style={{
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                gap: '8px', 
+                                paddingTop: '5px'
+                            }}>
+                                <label style={{
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '8px', 
+                                    cursor: 'pointer', 
+                                    fontSize: '0.85rem', 
+                                    color: '#94a3b8'
+                                }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={config?.hide_startup_popup || false}
+                                        style={{
+                                            width: '16px',
+                                            height: '16px',
+                                            cursor: 'pointer'
+                                        }}
+                                        onChange={(e) => {
+                                            if (config) {
+                                                const newConfig = new main.AppConfig({...config, hide_startup_popup: e.target.checked});
+                                                setConfig(newConfig);
+                                                SaveConfig(newConfig);
+                                            }
+                                        }}
+                                    />
+                                    {t("dontShowAgain")}
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

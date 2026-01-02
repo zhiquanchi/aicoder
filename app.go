@@ -49,12 +49,13 @@ type ToolConfig struct {
 }
 
 type AppConfig struct {
-	Claude         ToolConfig      `json:"claude"`
-	Gemini         ToolConfig      `json:"gemini"`
-	Codex          ToolConfig      `json:"codex"`
-	Projects       []ProjectConfig `json:"projects"`
-	CurrentProject string          `json:"current_project"` // ID of the current project
-	ActiveTool     string          `json:"active_tool"`     // "claude", "gemini", or "codex"
+	Claude             ToolConfig      `json:"claude"`
+	Gemini             ToolConfig      `json:"gemini"`
+	Codex              ToolConfig      `json:"codex"`
+	Projects           []ProjectConfig `json:"projects"`
+	CurrentProject     string          `json:"current_project"` // ID of the current project
+	ActiveTool         string          `json:"active_tool"`     // "claude", "gemini", or "codex"
+	HideStartupPopup   bool            `json:"hide_startup_popup"`
 }
 
 // NewApp creates a new App application struct
