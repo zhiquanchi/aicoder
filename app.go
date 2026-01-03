@@ -1312,6 +1312,11 @@ func (a *App) LoadConfig() (AppConfig, error) {
 						Projects:       oldConfig.Projects,
 						CurrentProject: oldConfig.CurrentProj,
 						ActiveTool:     "message",
+						ShowGemini:     true,
+						ShowCodex:      true,
+						ShowOpenCode:   true,
+						ShowCodeBuddy:  true,
+						ShowQoder:      true,
 					}
 					a.SaveConfig(config)
 					// Optional: os.Remove(oldPath)
@@ -1356,6 +1361,11 @@ func (a *App) LoadConfig() (AppConfig, error) {
 			},
 			CurrentProject: "default",
 			ActiveTool:     "message",
+			ShowGemini:     true,
+			ShowCodex:      true,
+			ShowOpenCode:   true,
+			ShowCodeBuddy:  true,
+			ShowQoder:      true,
 		}
 
 		err = a.SaveConfig(defaultConfig)
