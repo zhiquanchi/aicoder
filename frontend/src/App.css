@@ -360,24 +360,24 @@ body {
 }
 
 .model-btn.selected {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-    color: white;
-    border-color: transparent;
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.25);
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
 }
 
 /* Launch Button */
 .btn-launch {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-    color: white;
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    color: #1e40af;
     padding: 6px 24px;
-    border: none;
+    border: 1px solid #bfdbfe;
     border-radius: 8px;
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -386,9 +386,9 @@ body {
 }
 
 .btn-launch:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 12px rgba(37, 99, 235, 0.3);
-    filter: brightness(1.05);
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(59, 130, 246, 0.15);
 }
 
 .status-message {
