@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"time"
 
@@ -38,10 +39,19 @@ type ModelConfig struct {
 }
 
 type ProjectConfig struct {
-	Id       string `json:"id"`
-	Name     string `json:"name"`
-	Path     string `json:"path"`
-	YoloMode bool   `json:"yolo_mode"`
+	Id            string `json:"id"`
+	Name          string `json:"name"`
+	Path          string `json:"path"`
+	YoloMode      bool   `json:"yolo_mode"`
+	AdminMode     bool   `json:"admin_mode"`
+	PythonProject bool   `json:"python_project"` // Whether this is a Python project
+	PythonEnv     string `json:"python_env"`     // Selected Python/Anaconda environment
+}
+
+type PythonEnvironment struct {
+	Name string `json:"name"` // Environment name (e.g., "base", "myenv")
+	Path string `json:"path"` // Full path to the environment
+	Type string `json:"type"` // "conda", "venv", or "system"
 }
 
 type ToolConfig struct {
@@ -1037,8 +1047,16 @@ func getBaseUrl(selectedModel *ModelConfig) string {
 	return baseUrl
 }
 
-func (a *App) LaunchTool(toolName string, yoloMode bool, projectDir string) {
+func (a *App) LaunchTool(toolName string, yoloMode bool, adminMode bool, pythonProject bool, pythonEnv string, projectDir string) {
 	a.log(fmt.Sprintf("Launching %s...", toolName))
+
+	// Only process Python environment if pythonProject is true
+	if pythonProject && pythonEnv != "" && pythonEnv != "None (Default)" {
+		a.log(fmt.Sprintf("Python project: using Python environment: %s", pythonEnv))
+	} else {
+		// Clear pythonEnv if not a Python project
+		pythonEnv = ""
+	}
 	
 	if projectDir == "" {
 		projectDir = a.GetCurrentProjectPath()
@@ -1218,7 +1236,7 @@ func (a *App) LaunchTool(toolName string, yoloMode bool, projectDir string) {
 
 	// Platform specific launch
 
-		a.platformLaunch(binaryName, yoloMode, projectDir, env, selectedModel.ModelId)
+		a.platformLaunch(binaryName, yoloMode, adminMode, pythonEnv, projectDir, env, selectedModel.ModelId)
 
 	}
 
@@ -2105,4 +2123,279 @@ func (a *App) getLatestNpmVersion(npmPath string, packageName string) (string, e
 		return "", err
 	}
 	return strings.TrimSpace(string(out)), nil
+}
+
+// ListPythonEnvironments returns a list of all available Python environments
+func (a *App) ListPythonEnvironments() []PythonEnvironment {
+	envs := []PythonEnvironment{}
+
+	// Add default "None" option
+	envs = append(envs, PythonEnvironment{
+		Name: "None (Default)",
+		Path: "",
+		Type: "system",
+	})
+
+	// Detect Conda environments
+	condaEnvs := a.detectCondaEnvironments()
+	envs = append(envs, condaEnvs...)
+
+	// Could add detection for virtualenv, venv, etc. here
+
+	return envs
+}
+
+// detectCondaEnvironments finds all Anaconda/Miniconda environments
+func (a *App) detectCondaEnvironments() []PythonEnvironment {
+	envs := []PythonEnvironment{}
+
+	// Try to find conda executable
+	condaCmd := a.findCondaCommand()
+	if condaCmd == "" {
+		a.log("Conda command not found")
+		return envs
+	}
+
+	a.log("Using conda command: " + condaCmd)
+
+	// Run 'conda env list' to get all environments
+	// On Windows, we need to use cmd /c for proper execution
+	var cmd *exec.Cmd
+	if goruntime.GOOS == "windows" {
+		// Use cmd /c to run conda command
+		cmd = exec.Command("cmd", "/c", condaCmd, "env", "list")
+	} else {
+		cmd = exec.Command(condaCmd, "env", "list")
+	}
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		a.log("Failed to list conda environments: " + err.Error())
+		a.log("Command output: " + string(output))
+		return envs
+	}
+
+	a.log("Conda env list output: " + string(output))
+
+	// Use a map to deduplicate environments by name
+	envMap := make(map[string]PythonEnvironment)
+
+	// Parse the output
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+
+		// Skip comments and empty lines
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Parse line format: "envname  *  /path/to/env" or "envname  /path/to/env"
+		parts := strings.Fields(line)
+		if len(parts) < 2 {
+			continue
+		}
+
+		envName := parts[0]
+		envPath := ""
+
+		// Find the path (skip the * marker if present)
+		for i := 1; i < len(parts); i++ {
+			if parts[i] != "*" && (strings.Contains(parts[i], "/") || strings.Contains(parts[i], "\\") || strings.Contains(parts[i], ":")) {
+				envPath = parts[i]
+				break
+			}
+		}
+
+		if envPath != "" {
+			// Only add if not already in map (deduplicate by name)
+			if _, exists := envMap[envName]; !exists {
+				a.log(fmt.Sprintf("Found conda environment: %s at %s", envName, envPath))
+				envMap[envName] = PythonEnvironment{
+					Name: envName,
+					Path: envPath,
+					Type: "conda",
+				}
+			}
+		}
+	}
+
+	// Convert map to slice
+	for _, env := range envMap {
+		envs = append(envs, env)
+	}
+
+	a.log(fmt.Sprintf("Total conda environments found: %d", len(envs)))
+	return envs
+}
+
+// findCondaCommand tries to locate the conda executable
+func (a *App) findCondaCommand() string {
+	// Try common conda command names (include .bat for Windows)
+	condaCmds := []string{"conda.exe", "conda.bat", "conda"}
+
+	// First check CONDA_EXE environment variable
+	if condaExe := os.Getenv("CONDA_EXE"); condaExe != "" {
+		if _, err := os.Stat(condaExe); err == nil {
+			a.log("Found conda from CONDA_EXE: " + condaExe)
+			return condaExe
+		}
+	}
+
+	for _, cmd := range condaCmds {
+		// Check if command exists in PATH
+		if path, err := exec.LookPath(cmd); err == nil {
+			a.log("Found conda in PATH: " + path)
+			return path
+		}
+	}
+
+	// Try common installation paths
+	commonPaths := a.getCommonCondaPaths()
+	a.log(fmt.Sprintf("Searching for conda in %d common paths...", len(commonPaths)))
+
+	for _, basePath := range commonPaths {
+		// Check if the base path exists first
+		if _, err := os.Stat(basePath); os.IsNotExist(err) {
+			continue
+		}
+
+		for _, cmd := range condaCmds {
+			fullPath := filepath.Join(basePath, cmd)
+			if _, err := os.Stat(fullPath); err == nil {
+				a.log("Found conda at: " + fullPath)
+				return fullPath
+			}
+
+			// Also check in Scripts subdirectory (Windows)
+			scriptsPath := filepath.Join(basePath, "Scripts", cmd)
+			if _, err := os.Stat(scriptsPath); err == nil {
+				a.log("Found conda at: " + scriptsPath)
+				return scriptsPath
+			}
+
+			// Check in condabin subdirectory (newer Anaconda installations)
+			condabinPath := filepath.Join(basePath, "condabin", cmd)
+			if _, err := os.Stat(condabinPath); err == nil {
+				a.log("Found conda at: " + condabinPath)
+				return condabinPath
+			}
+
+			// Check in bin subdirectory (Linux/macOS)
+			binPath := filepath.Join(basePath, "bin", cmd)
+			if _, err := os.Stat(binPath); err == nil {
+				a.log("Found conda at: " + binPath)
+				return binPath
+			}
+		}
+	}
+
+	a.log("Conda not found in any common location")
+	return ""
+}
+
+// getCommonCondaPaths returns platform-specific common conda installation paths
+func (a *App) getCommonCondaPaths() []string {
+	paths := []string{}
+	homeDir := a.GetUserHomeDir()
+
+	// Check CONDA_PREFIX environment variable first
+	if condaPrefix := os.Getenv("CONDA_PREFIX"); condaPrefix != "" {
+		paths = append(paths, condaPrefix)
+	}
+
+	// Check CONDA_EXE environment variable
+	if condaExe := os.Getenv("CONDA_EXE"); condaExe != "" {
+		// CONDA_EXE points to the conda executable, go up to get root
+		condaDir := filepath.Dir(condaExe)
+		if strings.HasSuffix(strings.ToLower(condaDir), "scripts") ||
+		   strings.HasSuffix(strings.ToLower(condaDir), "library\\bin") {
+			paths = append(paths, filepath.Dir(condaDir))
+		} else {
+			paths = append(paths, condaDir)
+		}
+	}
+
+	// User home directory paths
+	paths = append(paths,
+		filepath.Join(homeDir, "anaconda3"),
+		filepath.Join(homeDir, "miniconda3"),
+		filepath.Join(homeDir, "Anaconda3"),
+		filepath.Join(homeDir, "Miniconda3"),
+	)
+
+	// AppData Local paths (Windows common location)
+	appDataLocal := os.Getenv("LOCALAPPDATA")
+	if appDataLocal != "" {
+		paths = append(paths,
+			filepath.Join(appDataLocal, "anaconda3"),
+			filepath.Join(appDataLocal, "miniconda3"),
+			filepath.Join(appDataLocal, "Continuum", "anaconda3"),
+			filepath.Join(appDataLocal, "Continuum", "miniconda3"),
+		)
+	}
+
+	// ProgramData paths (all users installation)
+	programData := os.Getenv("ProgramData")
+	if programData == "" {
+		programData = "C:\\ProgramData"
+	}
+	paths = append(paths,
+		filepath.Join(programData, "anaconda3"),
+		filepath.Join(programData, "miniconda3"),
+		filepath.Join(programData, "Anaconda3"),
+		filepath.Join(programData, "Miniconda3"),
+	)
+
+	// Common drive root installations
+	for _, drive := range []string{"C:", "D:", "E:"} {
+		paths = append(paths,
+			filepath.Join(drive, "anaconda3"),
+			filepath.Join(drive, "miniconda3"),
+			filepath.Join(drive, "Anaconda3"),
+			filepath.Join(drive, "Miniconda3"),
+			filepath.Join(drive, "ProgramData", "anaconda3"),
+			filepath.Join(drive, "ProgramData", "miniconda3"),
+		)
+	}
+
+	return paths
+}
+
+// getCondaRoot finds the conda installation root directory
+func (a *App) getCondaRoot() string {
+	// First try to get from conda command location
+	condaCmd := a.findCondaCommand()
+	if condaCmd != "" {
+		// If conda is in PATH or found directly, parse its path
+		// Conda executable is usually in [root]/Scripts/conda.exe or [root]/bin/conda
+		condaDir := filepath.Dir(condaCmd)
+
+		// Check if we're in Scripts or bin directory
+		if strings.HasSuffix(strings.ToLower(condaDir), "scripts") ||
+		   strings.HasSuffix(strings.ToLower(condaDir), "bin") {
+			// Go up one level to get the root
+			return filepath.Dir(condaDir)
+		}
+
+		// Otherwise, condaDir itself might be the root
+		return condaDir
+	}
+
+	// If not found, try common installation paths
+	commonPaths := a.getCommonCondaPaths()
+	for _, path := range commonPaths {
+		// Check if activate.bat exists (Windows) or activate exists (Unix)
+		activateScript := filepath.Join(path, "Scripts", "activate.bat")
+		if _, err := os.Stat(activateScript); err == nil {
+			return path
+		}
+
+		activateScript = filepath.Join(path, "bin", "activate")
+		if _, err := os.Stat(activateScript); err == nil {
+			return path
+		}
+	}
+
+	return ""
 }

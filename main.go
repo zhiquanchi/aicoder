@@ -27,7 +27,7 @@ func main() {
 		Title:     "AICoder",
 		Frameless: true,
 		Width:     510,
-		Height:    200,
+		Height:    259,
 		SingleInstanceLock: &options.SingleInstanceLock{
 			UniqueId: "aicoder-lock",
 			OnSecondInstanceLaunch: func(secondInstanceData options.SecondInstanceData) {

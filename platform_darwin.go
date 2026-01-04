@@ -262,8 +262,18 @@ func (a *App) restartApp() {
 	wails_runtime.Quit(a.ctx)
 }
 
-func (a *App) platformLaunch(binaryName string, yoloMode bool, projectDir string, env map[string]string, modelId string) {
+func (a *App) platformLaunch(binaryName string, yoloMode bool, adminMode bool, pythonEnv string, projectDir string, env map[string]string, modelId string) {
 	a.log(fmt.Sprintf("Launching %s...", binaryName))
+
+	// Note: adminMode is currently only supported on Windows
+	if adminMode {
+		a.log("Administrator mode is not supported on macOS. Launching normally.")
+	}
+
+	// Activate Python environment if specified
+	if pythonEnv != "" && pythonEnv != "None (Default)" {
+		a.log(fmt.Sprintf("Using Python environment: %s", pythonEnv))
+	}
 
 	tm := NewToolManager(a)
 	status := tm.GetToolStatus(binaryName)

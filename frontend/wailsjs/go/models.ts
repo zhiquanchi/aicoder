@@ -5,6 +5,9 @@ export namespace main {
 	    name: string;
 	    path: string;
 	    yolo_mode: boolean;
+	    admin_mode: boolean;
+	    python_project: boolean;
+	    python_env: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new ProjectConfig(source);
@@ -16,6 +19,9 @@ export namespace main {
 	        this.name = source["name"];
 	        this.path = source["path"];
 	        this.yolo_mode = source["yolo_mode"];
+	        this.admin_mode = source["admin_mode"];
+	        this.python_project = source["python_project"];
+	        this.python_env = source["python_env"];
 	    }
 	}
 	export class ModelConfig {
@@ -132,6 +138,22 @@ export namespace main {
 	}
 	
 	
+	export class PythonEnvironment {
+	    name: string;
+	    path: string;
+	    type: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PythonEnvironment(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.path = source["path"];
+	        this.type = source["type"];
+	    }
+	}
 	
 	export class ToolStatus {
 	    name: string;

@@ -18,7 +18,9 @@ export function Greet(arg1:string):Promise<string>;
 
 export function InstallTool(arg1:string):Promise<void>;
 
-export function LaunchTool(arg1:string,arg2:boolean,arg3:string):Promise<void>;
+export function LaunchTool(arg1:string,arg2:boolean,arg3:boolean,arg4:boolean,arg5:string,arg6:string):Promise<void>;
+
+export function ListPythonEnvironments():Promise<Array<main.PythonEnvironment>>;
 
 export function LoadConfig():Promise<main.AppConfig>;
 

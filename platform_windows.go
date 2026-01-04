@@ -12,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -366,7 +367,7 @@ func (a *App) restartApp() {
 	}
 }
 
-func (a *App) platformLaunch(binaryName string, yoloMode bool, projectDir string, env map[string]string, modelId string) {
+func (a *App) platformLaunch(binaryName string, yoloMode bool, adminMode bool, pythonEnv string, projectDir string, env map[string]string, modelId string) {
 	tm := NewToolManager(a)
 	status := tm.GetToolStatus(binaryName)
 	
@@ -415,24 +416,172 @@ func (a *App) platformLaunch(binaryName string, yoloMode bool, projectDir string
 		}
 	}
 
-	// Use SysProcAttr.CmdLine for raw control over quoting on Windows.
-	// This is necessary because paths with special characters like '&'
-	// require explicit quoting that Go's default escaping might not handle
-	// correctly when passed through 'cmd /c'.
-	cmdLine := fmt.Sprintf(`cmd /c start "" /d "%s" cmd /k "%s"%s`, projectDir, binaryPath, cmdArgs)
+	// Launch with administrator privileges if requested
+	if adminMode {
+		a.log("Launching with administrator privileges...")
 
-	cmd := exec.Command("cmd")
-	cmd.Dir = projectDir
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CmdLine:    cmdLine,
-		HideWindow: true,
-	}
+		// Build batch file content to set environment variables and launch the tool
+		batchContent := "@echo off\r\n"
+		batchContent += fmt.Sprintf("cd /d \"%s\"\r\n", projectDir)
 
-	a.log(fmt.Sprintf("Executing: %s (Dir: %s)", cmdLine, projectDir))
+		// Set environment variables in the batch file
+		for k, v := range env {
+			batchContent += fmt.Sprintf("set %s=%s\r\n", k, v)
+		}
 
-	err := cmd.Run()
-	if err != nil {
-		a.log("Error launching tool: " + err.Error())
+		// Activate Python environment if specified
+		if pythonEnv != "" && pythonEnv != "None (Default)" {
+			// Find conda root directory
+			condaRoot := a.getCondaRoot()
+			if condaRoot != "" {
+				// Initialize conda first by calling activate.bat
+				activateScript := filepath.Join(condaRoot, "Scripts", "activate.bat")
+				batchContent += fmt.Sprintf("echo Initializing Conda from: %s\r\n", condaRoot)
+				batchContent += fmt.Sprintf("call \"%s\"\r\n", activateScript)
+
+				// Now activate the specific environment
+				batchContent += fmt.Sprintf("echo Activating Python environment: %s\r\n", pythonEnv)
+				batchContent += fmt.Sprintf("call conda activate \"%s\"\r\n", pythonEnv)
+				batchContent += "if errorlevel 1 (\r\n"
+				batchContent += fmt.Sprintf("  echo Warning: Failed to activate conda environment '%s'. Continuing with base environment.\r\n", pythonEnv)
+				batchContent += ")\r\n"
+				batchContent += "echo Current Python: \r\n"
+				batchContent += "python --version\r\n"
+			} else {
+				batchContent += "echo Warning: Conda installation not found. Cannot activate environment.\r\n"
+			}
+		}
+
+		// Launch the tool
+		batchContent += fmt.Sprintf("\"%s\"%s\r\n", binaryPath, cmdArgs)
+		batchContent += "pause\r\n"
+
+		// Create a temporary batch file
+		tempBatchPath := filepath.Join(os.TempDir(), fmt.Sprintf("aicoder_admin_%d.bat", time.Now().UnixNano()))
+		err := os.WriteFile(tempBatchPath, []byte(batchContent), 0644)
+		if err != nil {
+			a.log("Error creating batch file: " + err.Error())
+			a.ShowMessage("Launch Error", "Failed to create temporary batch file")
+			return
+		}
+
+		// Use ShellExecute with "runas" verb to launch with admin privileges
+		shell32 := syscall.NewLazyDLL("shell32.dll")
+		shellExecute := shell32.NewProc("ShellExecuteW")
+
+		verb := syscall.StringToUTF16Ptr("runas")
+		file := syscall.StringToUTF16Ptr("cmd.exe")
+		params := syscall.StringToUTF16Ptr(fmt.Sprintf("/k \"%s\"", tempBatchPath))
+		dir := syscall.StringToUTF16Ptr(projectDir)
+
+		a.log(fmt.Sprintf("Executing with admin: cmd.exe /k \"%s\" (Dir: %s)", tempBatchPath, projectDir))
+
+		ret, _, _ := shellExecute.Call(
+			0,
+			uintptr(unsafe.Pointer(verb)),
+			uintptr(unsafe.Pointer(file)),
+			uintptr(unsafe.Pointer(params)),
+			uintptr(unsafe.Pointer(dir)),
+			uintptr(syscall.SW_SHOW),
+		)
+
+		if ret <= 32 {
+			a.log(fmt.Sprintf("ShellExecute failed with return value: %d", ret))
+			a.ShowMessage("Launch Error", "Failed to launch with administrator privileges. Please check UAC settings.")
+		}
+
+		// Clean up the batch file after a delay (since it's launched asynchronously)
+		go func() {
+			time.Sleep(5 * time.Second)
+			os.Remove(tempBatchPath)
+		}()
+	} else {
+		// Check if we need to activate Python environment
+		if pythonEnv != "" && pythonEnv != "None (Default)" {
+			// Use batch file approach for Python environment activation
+			batchContent := "@echo off\r\n"
+			batchContent += fmt.Sprintf("cd /d \"%s\"\r\n", projectDir)
+
+			// Set environment variables
+			for k, v := range env {
+				os.Setenv(k, v)
+			}
+
+			// Find conda root directory and initialize conda
+			condaRoot := a.getCondaRoot()
+			if condaRoot != "" {
+				// Initialize conda first by calling activate.bat
+				activateScript := filepath.Join(condaRoot, "Scripts", "activate.bat")
+				batchContent += fmt.Sprintf("echo Initializing Conda from: %s\r\n", condaRoot)
+				batchContent += fmt.Sprintf("call \"%s\"\r\n", activateScript)
+
+				// Now activate the specific environment
+				batchContent += fmt.Sprintf("echo Activating Python environment: %s\r\n", pythonEnv)
+				batchContent += fmt.Sprintf("call conda activate \"%s\"\r\n", pythonEnv)
+				batchContent += "if errorlevel 1 (\r\n"
+				batchContent += fmt.Sprintf("  echo Warning: Failed to activate conda environment '%s'. Continuing with base environment.\r\n", pythonEnv)
+				batchContent += ")\r\n"
+				batchContent += "echo Current Python: \r\n"
+				batchContent += "python --version\r\n"
+			} else {
+				batchContent += "echo Warning: Conda installation not found. Cannot activate environment.\r\n"
+			}
+
+			// Launch the tool
+			batchContent += fmt.Sprintf("\"%s\"%s\r\n", binaryPath, cmdArgs)
+
+			// Create a temporary batch file
+			tempBatchPath := filepath.Join(os.TempDir(), fmt.Sprintf("aicoder_%d.bat", time.Now().UnixNano()))
+			err := os.WriteFile(tempBatchPath, []byte(batchContent), 0644)
+			if err != nil {
+				a.log("Error creating batch file: " + err.Error())
+				a.ShowMessage("Launch Error", "Failed to create temporary batch file")
+				return
+			}
+
+			// Launch the batch file in a new command window
+			cmdLine := fmt.Sprintf(`cmd /c start "" /d "%s" cmd /k "%s"`, projectDir, tempBatchPath)
+
+			cmd := exec.Command("cmd")
+			cmd.Dir = projectDir
+			cmd.SysProcAttr = &syscall.SysProcAttr{
+				CmdLine:    cmdLine,
+				HideWindow: true,
+			}
+
+			a.log(fmt.Sprintf("Executing with Python env: %s (Dir: %s)", cmdLine, projectDir))
+
+			err = cmd.Run()
+			if err != nil {
+				a.log("Error launching tool: " + err.Error())
+			}
+
+			// Clean up the batch file after a delay
+			go func() {
+				time.Sleep(5 * time.Second)
+				os.Remove(tempBatchPath)
+			}()
+		} else {
+			// Use SysProcAttr.CmdLine for raw control over quoting on Windows.
+			// This is necessary because paths with special characters like '&'
+			// require explicit quoting that Go's default escaping might not handle
+			// correctly when passed through 'cmd /c'.
+			cmdLine := fmt.Sprintf(`cmd /c start "" /d "%s" cmd /k "%s"%s`, projectDir, binaryPath, cmdArgs)
+
+			cmd := exec.Command("cmd")
+			cmd.Dir = projectDir
+			cmd.SysProcAttr = &syscall.SysProcAttr{
+				CmdLine:    cmdLine,
+				HideWindow: true,
+			}
+
+			a.log(fmt.Sprintf("Executing: %s (Dir: %s)", cmdLine, projectDir))
+
+			err := cmd.Run()
+			if err != nil {
+				a.log("Error launching tool: " + err.Error())
+			}
+		}
 	}
 }
 

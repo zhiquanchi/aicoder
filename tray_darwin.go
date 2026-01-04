@@ -236,7 +236,7 @@ func setupTray(app *App, appOptions *options.App) {
 				go func() {
 					currentConfig, _ := app.LoadConfig()
 					path := app.GetCurrentProjectPath()
-					app.LaunchTool(currentConfig.ActiveTool, false, path)
+					app.LaunchTool(currentConfig.ActiveTool, false, false, false, "", path)
 				}()
 			})
 

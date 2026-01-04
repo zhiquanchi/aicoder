@@ -2,7 +2,7 @@ import {useEffect, useState, useRef} from 'react';
 import './App.css';
 import {buildNumber} from './version';
 import appIcon from './assets/images/appicon.png';
-import {CheckToolsStatus, InstallTool, LoadConfig, SaveConfig, CheckEnvironment, ResizeWindow, LaunchTool, SelectProjectDir, SetLanguage, GetUserHomeDir, CheckUpdate, ShowMessage, ReadBBS, ReadTutorial, ClipboardGetText} from "../wailsjs/go/main/App";
+import {CheckToolsStatus, InstallTool, LoadConfig, SaveConfig, CheckEnvironment, ResizeWindow, LaunchTool, SelectProjectDir, SetLanguage, GetUserHomeDir, CheckUpdate, ShowMessage, ReadBBS, ReadTutorial, ClipboardGetText, ListPythonEnvironments} from "../wailsjs/go/main/App";
 import {WindowHide, EventsOn, EventsOff, BrowserOpenURL, Quit} from "../wailsjs/runtime";
 import {main} from "../wailsjs/go/models";
 import ReactMarkdown from 'react-markdown';
@@ -81,6 +81,9 @@ const translations: any = {
         "language": "Language",
         "runnerStatus": "Current Environment",
         "yoloModeLabel": "Yolo Mode (Skip Permissions)",
+        "adminModeLabel": "Administrator Privileges",
+        "pythonProjectLabel": "Python Project",
+        "pythonEnvLabel": "Environment",
         "customProviderPlaceholder": "Custom Provider Name",
         "version": "Version",
         "author": "Author",
@@ -171,6 +174,9 @@ const translations: any = {
         "language": "界面语言",
         "runnerStatus": "当前环境",
         "yoloModeLabel": "Yolo 模式",
+        "adminModeLabel": "管理员权限",
+        "pythonProjectLabel": "Python 项目",
+        "pythonEnvLabel": "环境",
         "customProviderPlaceholder": "自定义服务商名称",
         "version": "版本",
         "author": "作者",
@@ -258,6 +264,9 @@ const translations: any = {
         "language": "界面語言",
         "runnerStatus": "目前環境",
         "yoloModeLabel": "Yolo 模式",
+        "adminModeLabel": "管理員權限",
+        "pythonProjectLabel": "Python 項目",
+        "pythonEnvLabel": "環境",
         "customProviderPlaceholder": "自定義服務商名稱",
         "version": "版本",
         "author": "作者",
@@ -344,7 +353,7 @@ const ToolConfiguration = ({
                         onClick={() => handleModelSwitch(model.model_name)}
                         style={{
                             minWidth: '100px',
-                            padding: '6px 4px',
+                            padding: '4px 4px',
                             fontSize: '0.8rem',
                             borderBottom: (model.api_key && model.api_key.trim() !== "") ? '3px solid #60a5fa' : '1px solid var(--border-color)',
                             position: 'relative',
@@ -394,6 +403,7 @@ function App() {
     const [tabStartIndex, setTabStartIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [showStartupPopup, setShowStartupPopup] = useState(false);
+    const [pythonEnvironments, setPythonEnvironments] = useState<any[]>([]);
 
     useEffect(() => {
         // activeTab 0 is Original (hidden), so configurable models start at 1.
@@ -543,6 +553,13 @@ function App() {
 
         CheckEnvironment(); // Start checks
         checkTools();
+
+        // Load Python environments
+        ListPythonEnvironments().then((envs) => {
+            setPythonEnvironments(envs);
+        }).catch(err => {
+            console.error("Failed to load Python environments:", err);
+        });
 
         // Config Logic
         LoadConfig().then((cfg) => {
@@ -1325,10 +1342,21 @@ function App() {
                             />
                         )}
                     {navTab === 'projects' && (
-                        <div style={{padding: '10px'}}>
-                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-                                <h3 style={{margin: 0}}>{t("projectManagement")}</h3>
-                                <button className="btn-primary" onClick={handleAddNewProject}>{t("addNewProject")}</button>
+                        <div style={{padding: '5px 10px'}}>
+                             <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px'}}>
+                                <button
+                                    onClick={() => switchTool(activeTool)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        fontSize: '1.2rem',
+                                        color: 'var(--primary-color)',
+                                        padding: '0 4px'
+                                    }}
+                                    title="Back"
+                                >&lt;&lt;</button>
+                                <button className="btn-primary" style={{padding: '3px 12px', fontSize: '0.85rem'}} onClick={handleAddNewProject}>{t("addNewProject")}</button>
                             </div>
                             
                             <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
@@ -1603,8 +1631,8 @@ function App() {
                 {/* Global Action Bar (Footer) */}
                 {config && (navTab === 'claude' || navTab === 'gemini' || navTab === 'codex' || navTab === 'opencode' || navTab === 'codebuddy' || navTab === 'qoder') && (
                     <div className="global-action-bar">
-                        <div style={{display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', padding: '4px 0'}}>
-                            <div style={{display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center'}}>
+                        <div style={{display: 'flex', flexDirection: 'column', gap: '5px', width: '100%', padding: '2px 0'}}>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'flex-start'}}>
                                 <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                                     <span style={{fontSize: '0.75rem', color: '#9ca3af'}}>{t("runnerStatus")}:</span>
                                     <span style={{fontSize: '0.85rem', fontWeight: 600, color: '#60a5fa', textTransform: 'capitalize'}}>{activeTool}</span>
@@ -1646,7 +1674,82 @@ function App() {
                                     )}
                                 </label>
                             </div>
-                            <div style={{display: 'flex', alignItems: 'center', gap: '15px', justifyContent: 'center'}}>
+                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '15px'}}>
+                                <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.8rem', color: '#6b7280'}}>
+                                    <input
+                                        type="checkbox"
+                                        checked={config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.admin_mode || false}
+                                        onChange={(e) => {
+                                            const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                            if (proj) {
+                                                const newProjects = config.projects.map((p: any) =>
+                                                    p.id === proj.id ? { ...p, admin_mode: e.target.checked } : p
+                                                );
+                                                const newConfig = new main.AppConfig({...config, projects: newProjects});
+                                                setConfig(newConfig);
+                                                SaveConfig(newConfig);
+                                            }
+                                        }}
+                                        style={{marginRight: '6px'}}
+                                    />
+                                    <span>{t("adminModeLabel")}</span>
+                                </label>
+                                <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.8rem', color: '#6b7280'}}>
+                                    <input
+                                        type="checkbox"
+                                        checked={config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.python_project || false}
+                                        onChange={(e) => {
+                                            const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                            if (proj) {
+                                                const newProjects = config.projects.map((p: any) =>
+                                                    p.id === proj.id ? { ...p, python_project: e.target.checked } : p
+                                                );
+                                                const newConfig = new main.AppConfig({...config, projects: newProjects});
+                                                setConfig(newConfig);
+                                                SaveConfig(newConfig);
+                                            }
+                                        }}
+                                        style={{marginRight: '6px'}}
+                                    />
+                                    <span>{t("pythonProjectLabel")}</span>
+                                </label>
+                                {config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.python_project && (
+                                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                        <span style={{fontSize: '0.8rem', color: '#6b7280'}}>{t("pythonEnvLabel")}:</span>
+                                        <select
+                                            value={config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.python_env || ""}
+                                            onChange={(e) => {
+                                                const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                                if (proj) {
+                                                    const newProjects = config.projects.map((p: any) =>
+                                                        p.id === proj.id ? { ...p, python_env: e.target.value } : p
+                                                    );
+                                                    const newConfig = new main.AppConfig({...config, projects: newProjects});
+                                                    setConfig(newConfig);
+                                                    SaveConfig(newConfig);
+                                                }
+                                            }}
+                                            style={{
+                                                padding: '5px 8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid #d1d5db',
+                                                backgroundColor: '#ffffff',
+                                                fontSize: '0.85rem',
+                                                color: '#374151',
+                                                cursor: 'pointer',
+                                                maxWidth: '200px'
+                                            }}
+                                        >
+                                            {pythonEnvironments.map((env: any, index: number) => (
+                                                <option key={index} value={env.name}>
+                                                    {env.name} {env.type === 'conda' ? '(Conda)' : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '15px', justifyContent: 'flex-start'}}>
                                 <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                                     <span style={{fontSize: '0.8rem', color: '#6b7280'}}>{t("project")}:</span>
                                     <select
@@ -1699,15 +1802,15 @@ function App() {
                                         e.currentTarget.style.color = '#6b7280';
                                     }}
                                 >
-                                    {t("manageProjects")}
+                                    ...
                                 </button>
                                 <button
                                     className="btn-launch"
-                                    style={{padding: '7.5px 30px', textAlign: 'center'}}
+                                    style={{padding: '8px 45px', textAlign: 'center'}}
                                     onClick={() => {
                                         const selectedProj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
                                         if (selectedProj) {
-                                            LaunchTool(activeTool, selectedProj.yolo_mode, selectedProj.path || "");
+                                            LaunchTool(activeTool, selectedProj.yolo_mode, selectedProj.admin_mode || false, selectedProj.python_project || false, selectedProj.python_env || "", selectedProj.path || "");
                                             // Update current project if different
                                             if (selectedProjectForLaunch !== config?.current_project) {
                                                 handleProjectSwitch(selectedProjectForLaunch);
@@ -1724,7 +1827,7 @@ function App() {
                     </div>
                 )}
 
-                <div className="status-message" style={{padding: '0 20px 10px 20px', minHeight: '30px'}}>
+                <div className="status-message" style={{padding: '0 20px 4px 20px', minHeight: '20px'}}>
                     <span key={status} style={{color: (status.includes("Error") || status.includes("!") || status.includes("first")) ? '#ef4444' : '#10b981'}}>
                         {status}
                     </span>

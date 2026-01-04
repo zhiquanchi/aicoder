@@ -34,8 +34,12 @@ export function InstallTool(arg1) {
   return window['go']['main']['App']['InstallTool'](arg1);
 }
 
-export function LaunchTool(arg1, arg2, arg3) {
-  return window['go']['main']['App']['LaunchTool'](arg1, arg2, arg3);
+export function LaunchTool(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['main']['App']['LaunchTool'](arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
+export function ListPythonEnvironments() {
+  return window['go']['main']['App']['ListPythonEnvironments']();
 }
 
 export function LoadConfig() {
