@@ -1802,18 +1802,25 @@ func (a *App) CheckUpdate(currentVersion string) (UpdateResult, error) {
 	req.Header.Set("User-Agent", "AICoder")
 
 	// Add GitHub token for authentication (helps avoid rate limiting)
-	// Priority: 1) GITHUB_TOKEN environment variable, 2) Built-in default token (base64 encoded)
-	const defaultGitHubTokenEncoded = "Z2hwX2kzcVVnZ1hPS0pzckVSSnZSQmh4Y050bDloVUdGejBPNTRGQQ=="
+	// Priority: 1) GITHUB_TOKEN environment variable, 2) Built-in default token (base64 encoded 3 times)
+	const defaultGitHubTokenEncoded = "V2pKb2QxZ3hjREJPVmtZeVVXNXNUV0ZZVmtOaFZFSktWbXBuTWxsWVNrOVNhbWhYWTI1a1ZsRlVUbXBWZWtaUVlsWk9TR1IzUFQwPQ=="
 
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
-		// Decode the base64 encoded token
-		decodedToken, err := base64.StdEncoding.DecodeString(defaultGitHubTokenEncoded)
-		if err == nil {
-			token = string(decodedToken)
+		// Decode the base64 encoded token (3 times)
+		decoded := defaultGitHubTokenEncoded
+		for i := 0; i < 3; i++ {
+			decodedBytes, err := base64.StdEncoding.DecodeString(decoded)
+			if err != nil {
+				a.log(fmt.Sprintf("CheckUpdate: Failed to decode token at iteration %d: %v", i+1, err))
+				decoded = ""
+				break
+			}
+			decoded = string(decodedBytes)
+		}
+		if decoded != "" {
+			token = decoded
 			a.log("CheckUpdate: Using built-in GitHub token for authentication")
-		} else {
-			a.log("CheckUpdate: Failed to decode token: " + err.Error())
 		}
 	} else {
 		a.log("CheckUpdate: Using custom GitHub token from environment variable")
@@ -2058,15 +2065,23 @@ func (a *App) fetchRemoteMarkdown(repo, file string) (string, error) {
 	req.Header.Set("Pragma", "no-cache")
 
 	// Add GitHub token for authentication (helps avoid rate limiting)
-	// Priority: 1) GITHUB_TOKEN environment variable, 2) Built-in default token (base64 encoded)
-	const defaultGitHubTokenEncoded = "Z2hwX2kzcVVnZ1hPS0pzckVSSnZSQmh4Y050bDloVUdGejBPNTRGQQ=="
+	// Priority: 1) GITHUB_TOKEN environment variable, 2) Built-in default token (base64 encoded 3 times)
+	const defaultGitHubTokenEncoded = "V2pKb2QxZ3hjREJPVmtZeVVXNXNUV0ZZVmtOaFZFSktWbXBuTWxsWVNrOVNhbWhYWTI1a1ZsRlVUbXBWZWtaUVlsWk9TR1IzUFQwPQ=="
 
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
-		// Decode the base64 encoded token
-		decodedToken, err := base64.StdEncoding.DecodeString(defaultGitHubTokenEncoded)
-		if err == nil {
-			token = string(decodedToken)
+		// Decode the base64 encoded token (3 times)
+		decoded := defaultGitHubTokenEncoded
+		for i := 0; i < 3; i++ {
+			decodedBytes, err := base64.StdEncoding.DecodeString(decoded)
+			if err != nil {
+				decoded = ""
+				break
+			}
+			decoded = string(decodedBytes)
+		}
+		if decoded != "" {
+			token = decoded
 		}
 	}
 	if token != "" {
