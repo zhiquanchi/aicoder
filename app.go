@@ -2398,6 +2398,22 @@ func (a *App) getCommonCondaPaths() []string {
 		filepath.Join(homeDir, "Miniconda3"),
 	)
 
+	// macOS common paths
+	if goruntime.GOOS == "darwin" {
+		paths = append(paths,
+			"/opt/anaconda3",
+			"/opt/miniconda3",
+			"/usr/local/anaconda3",
+			"/usr/local/miniconda3",
+			"/opt/homebrew/anaconda3",
+			"/opt/homebrew/miniconda3",
+			"/opt/homebrew/Caskroom/miniconda/base",
+			"/opt/homebrew/Caskroom/anaconda/base",
+			"/usr/local/Caskroom/miniconda/base",
+			"/usr/local/Caskroom/anaconda/base",
+		)
+	}
+
 	// AppData Local paths (Windows common location)
 	appDataLocal := os.Getenv("LOCALAPPDATA")
 	if appDataLocal != "" {
