@@ -1800,6 +1800,23 @@ func (a *App) CheckUpdate(currentVersion string) (UpdateResult, error) {
 	}
 	req.Header.Set("User-Agent", "AICoder")
 
+	// Add GitHub token for authentication (helps avoid rate limiting)
+	// Priority: 1) GITHUB_TOKEN environment variable, 2) Built-in default token
+	// The built-in token has read-only access to public repositories
+	const defaultGitHubToken = "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"
+
+	token := os.Getenv("GITHUB_TOKEN")
+	if token == "" {
+		token = defaultGitHubToken
+		a.log("CheckUpdate: Using built-in GitHub token for authentication")
+	} else {
+		a.log("CheckUpdate: Using custom GitHub token from environment variable")
+	}
+
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -1810,11 +1827,31 @@ func (a *App) CheckUpdate(currentVersion string) (UpdateResult, error) {
 
 	a.log(fmt.Sprintf("CheckUpdate: HTTP Status: %d", resp.StatusCode))
 
+	// Log rate limit headers for debugging
+	a.log(fmt.Sprintf("CheckUpdate: Rate Limit: %s/%s, Reset: %s",
+		resp.Header.Get("X-RateLimit-Remaining"),
+		resp.Header.Get("X-RateLimit-Limit"),
+		resp.Header.Get("X-RateLimit-Reset")))
+
 	// Check HTTP status
 	if resp.StatusCode != 200 {
 		a.log(fmt.Sprintf("CheckUpdate: GitHub API returned status %d", resp.StatusCode))
 		bodyText, _ := io.ReadAll(resp.Body)
 		a.log(fmt.Sprintf("CheckUpdate: Response: %s", string(bodyText[:min(len(bodyText), 200)])))
+
+		// Provide specific error message for rate limiting
+		if resp.StatusCode == 403 {
+			remaining := resp.Header.Get("X-RateLimit-Remaining")
+			if remaining == "0" {
+				resetTime := resp.Header.Get("X-RateLimit-Reset")
+				a.log(fmt.Sprintf("CheckUpdate: Rate limit exceeded, resets at: %s", resetTime))
+				return UpdateResult{LatestVersion: "速率限制", ReleaseUrl: ""},
+					fmt.Errorf("github api rate limit exceeded (resets at %s)", resetTime)
+			}
+			return UpdateResult{LatestVersion: "访问受限", ReleaseUrl: ""},
+				fmt.Errorf("github api access forbidden (status 403)")
+		}
+
 		return UpdateResult{LatestVersion: "API错误", ReleaseUrl: ""}, fmt.Errorf("github api returned status %d", resp.StatusCode)
 	}
 
@@ -2013,6 +2050,16 @@ func (a *App) fetchRemoteMarkdown(repo, file string) (string, error) {
 	req.Header.Set("User-Agent", "AICoder-App")
 	req.Header.Set("Cache-Control", "no-cache, no-store")
 	req.Header.Set("Pragma", "no-cache")
+
+	// Add GitHub token for authentication (helps avoid rate limiting)
+	const defaultGitHubToken = "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"
+	token := os.Getenv("GITHUB_TOKEN")
+	if token == "" {
+		token = defaultGitHubToken
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {

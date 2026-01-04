@@ -24,7 +24,7 @@ const subscriptionUrls: {[key: string]: string} = {
 };
 
 
-const APP_VERSION = "2.6.0.2102";
+const APP_VERSION = "2.6.2.3000";
 
 const translations: any = {
     "en": {
@@ -405,6 +405,9 @@ function App() {
     const [showStartupPopup, setShowStartupPopup] = useState(false);
     const [pythonEnvironments, setPythonEnvironments] = useState<any[]>([]);
 
+    // Ref to prevent multiple hide clicks
+    const isHidingRef = useRef(false);
+
     useEffect(() => {
         // activeTab 0 is Original (hidden), so configurable models start at 1.
         // We map activeTab to a 0-based index for the configurable list.
@@ -452,6 +455,29 @@ function App() {
 
     const closeContextMenu = () => {
         setContextMenu({...contextMenu, visible: false});
+    };
+
+    const handleWindowHide = (e: React.MouseEvent) => {
+        // Prevent event bubbling and default behavior
+        e.preventDefault();
+        e.stopPropagation();
+
+        console.log("Hide button clicked"); // Debug log
+
+        // Prevent multiple rapid clicks
+        if (isHidingRef.current) {
+            console.log("Already hiding, ignoring click");
+            return;
+        }
+        isHidingRef.current = true;
+
+        console.log("Calling WindowHide");
+        WindowHide();
+
+        // Reset flag after a short delay
+        setTimeout(() => {
+            isHidingRef.current = false;
+        }, 1000);
     };
 
     useEffect(() => {
@@ -623,6 +649,7 @@ function App() {
         return () => {
             EventsOff("env-log");
             EventsOff("env-check-done");
+            EventsOff("config-changed");
         };
     }, []);
 
@@ -1100,21 +1127,25 @@ function App() {
             </div>
 
             <div className="main-container">
-                <div className="top-header" style={{'--wails-draggable': 'drag'} as any}>
+                <div className="top-header" style={{'--wails-draggable': 'no-drag'} as any}>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%'}}>
-                        <h2 style={{margin: 0, fontSize: '1.1rem', color: '#60a5fa', fontWeight: 'bold', marginLeft: '20px'}}>
+                        <h2 style={{margin: 0, fontSize: '1.1rem', color: '#60a5fa', fontWeight: 'bold', marginLeft: '20px', '--wails-draggable': 'drag', flex: 1} as any}>
                             {navTab === 'message' ? t("message") :
-                             navTab === 'claude' ? 'Claude Code' : 
-                             navTab === 'gemini' ? 'Gemini CLI' : 
-                             navTab === 'codex' ? 'OpenAI Codex' : 
-                             navTab === 'opencode' ? 'OpenCode AI' : 
+                             navTab === 'claude' ? 'Claude Code' :
+                             navTab === 'gemini' ? 'Gemini CLI' :
+                             navTab === 'codex' ? 'OpenAI Codex' :
+                             navTab === 'opencode' ? 'OpenCode AI' :
                              navTab === 'codebuddy' ? 'CodeBuddy AI' :
                              navTab === 'qoder' ? 'Qoder CLI' :
-                             navTab === 'projects' ? t("projectManagement") : 
+                             navTab === 'projects' ? t("projectManagement") :
                              navTab === 'settings' ? t("globalSettings") : t("about")}
                         </h2>
-                        <div style={{display: 'flex', gap: '10px', '--wails-draggable': 'no-drag', marginRight: '5px'} as any}>
-                            <button onClick={WindowHide} className="btn-hide">
+                        <div style={{display: 'flex', gap: '10px', '--wails-draggable': 'no-drag', marginRight: '5px', pointerEvents: 'auto', position: 'relative', zIndex: 10000} as any}>
+                            <button
+                                onMouseDown={handleWindowHide}
+                                className="btn-hide"
+                                style={{'--wails-draggable': 'no-drag', pointerEvents: 'auto', cursor: 'pointer', position: 'relative', zIndex: 10001} as any}
+                            >
                                 {t("hide")}
                             </button>
                         </div>

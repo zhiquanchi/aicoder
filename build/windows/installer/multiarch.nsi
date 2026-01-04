@@ -3,7 +3,7 @@ Unicode true
 !define INFO_PROJECTNAME "AICoder"
 !define INFO_COMPANYNAME "RapidAI"
 !define INFO_PRODUCTNAME "AICoder"
-!define INFO_PRODUCTVERSION "2.6.0.2102"
+!define INFO_PRODUCTVERSION "2.6.2.3000"
 !define INFO_COPYRIGHT "Copyright 2025"
 !define PRODUCT_EXECUTABLE "AICoder.exe"
 !define REQUEST_EXECUTION_LEVEL "admin"
@@ -34,6 +34,10 @@ ManifestDPIAware true
 !define MUI_UNICON "..\icon.ico"
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 !define MUI_ABORTWARNING
+
+# Launch application after installation (checked by default)
+!define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXECUTABLE}"
+!define MUI_FINISHPAGE_RUN_TEXT "Launch ${INFO_PRODUCTNAME}"
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
