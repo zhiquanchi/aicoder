@@ -23,7 +23,7 @@ const subscriptionUrls: {[key: string]: string} = {
     "CodeRelay": "https://api.code-relay.com/register?aff=0ZtO"
 };
 
-const APP_VERSION = "2.6.1.2154";
+const APP_VERSION = "2.6.1.2156";
 
 const translations: any = {
     "en": {
@@ -1545,10 +1545,22 @@ function App() {
                                                         background: 'linear-gradient(to right, #60a5fa, #a855f7, #ec4899)',
                                                         WebkitBackgroundClip: 'text',
                                                         WebkitTextFillColor: 'transparent',
-                                                        marginBottom: '12px',
+                                                        marginBottom: '4px',
                                                         display: 'inline-block'
                                                     }}>
                                                         会AI编程者得工作！
+                                                    </div>
+                                                    <br/>
+                                                    <div style={{
+                                                        fontSize: '0.9rem', 
+                                                        fontWeight: 'bold',
+                                                        background: 'linear-gradient(to right, #60a5fa, #a855f7, #ec4899)',
+                                                        WebkitBackgroundClip: 'text',
+                                                        WebkitTextFillColor: 'transparent',
+                                                        marginBottom: '12px',
+                                                        display: 'inline-block'
+                                                    }}>
+                                                        {lang === 'zh-Hans' || lang === 'zh-Hant' ? '真正的Vibe Coder只使用命令行。' : 'Real Vibe Coders only use the command line.'}
                                                     </div>
                                                     <div style={{fontSize: '1rem', color: '#374151', marginBottom: '5px'}}>{t("version")} {APP_VERSION}</div>
                                                     <div style={{fontSize: '0.9rem', color: '#64748b', marginBottom: '5px'}}>{t("businessCooperation")}</div>
@@ -2024,6 +2036,16 @@ function App() {
                                 fontWeight: '700'
                             }}>
                                 会AI编程者得工作！
+                            </p>
+                            <p style={{
+                                margin: '4px 0 0 0', 
+                                background: 'linear-gradient(to right, #2563eb, #9333ea, #db2777)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                fontSize: '0.85rem',
+                                fontWeight: '700'
+                            }}>
+                                {lang === 'zh-Hans' || lang === 'zh-Hant' ? '真正的Vibe Coder只使用命令行。' : 'Real Vibe Coders only use the command line.'}
                             </p>
                         </div>
                         
