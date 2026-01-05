@@ -55,7 +55,7 @@ const translations: any = {
         "saving": "Saving...",
         "saved": "Saved successfully!",
         "close": "Close",
-        "manageProjects": "Manage Projects",
+        "manageProjects": "Projects",
         "projectManagement": "Project Management",
         "projectName": "Project Name",
         "delete": "Delete",
@@ -80,8 +80,8 @@ const translations: any = {
         "settings": "Settings",
         "globalSettings": "Global Settings",
         "language": "Language",
-        "runnerStatus": "Tool Set",
-        "yoloModeLabel": "Yolo Mode (No Ask)",
+        "runnerStatus": "Cur",
+        "yoloModeLabel": "Yolo Mode",
         "adminModeLabel": "Administrator Privileges",
         "rootModeLabel": "As root",
         "pythonProjectLabel": "Python Project",
@@ -129,7 +129,18 @@ const translations: any = {
         "confirmSendLog": "Confirm Send",
         "confirmSendLogMessage": "No errors detected in logs. Send anyway?",
         "cancel": "Cancel",
-        "confirm": "Confirm"
+        "confirm": "Confirm",
+        "slogan": "AI programmers get the job!",
+        "proxySettings": "Proxy Set",
+        "proxyHost": "Proxy Host",
+        "proxyPort": "Proxy Port",
+        "proxyUsername": "Username (Optional)",
+        "proxyPassword": "Password (Optional)",
+        "proxyMode": "Proxy",
+        "proxyNotConfigured": "Proxy not configured. Please configure proxy settings first.",
+        "useDefaultProxy": "Use default proxy settings",
+        "proxyHostPlaceholder": "e.g., 192.168.1.1 or proxy.company.com",
+        "proxyPortPlaceholder": "e.g., 8080"
     },
     "zh-Hans": {
         "title": "AICoder",
@@ -233,7 +244,18 @@ const translations: any = {
         "confirmSendLog": "确认发送",
         "confirmSendLogMessage": "日志中没有检测到错误，是否仍要发送日志？",
         "cancel": "取消",
-        "confirm": "确定"
+        "confirm": "确定",
+        "slogan": "会AI编程者得工作！",
+        "proxySettings": "代理设置",
+        "proxyHost": "Proxy Host",
+        "proxyPort": "Proxy Port",
+        "proxyUsername": "Username (Optional)",
+        "proxyPassword": "Password (Optional)",
+        "proxyMode": "Proxy",
+        "proxyNotConfigured": "Proxy not configured. Please configure proxy settings first.",
+        "useDefaultProxy": "Use default proxy settings",
+        "proxyHostPlaceholder": "例如：192.168.1.1 或 proxy.company.com",
+        "proxyPortPlaceholder": "例如：8080"
     },
     "zh-Hant": {
         "title": "AICoder",
@@ -335,7 +357,18 @@ const translations: any = {
         "confirmSendLog": "確認發送",
         "confirmSendLogMessage": "日誌中沒有檢測到錯誤，是否仍要發送日誌？",
         "cancel": "取消",
-        "confirm": "確定"
+        "confirm": "確定",
+        "slogan": "會AI編程者得工作！",
+        "proxySettings": "代理設置",
+        "proxyHost": "Proxy Host",
+        "proxyPort": "Proxy Port",
+        "proxyUsername": "使用者名稱（可選）",
+        "proxyPassword": "密碼（可選）",
+        "proxyMode": "Proxy",
+        "proxyNotConfigured": "Proxy not configured. Please configure proxy settings first.",
+        "useDefaultProxy": "Use default proxy settings",
+        "proxyHostPlaceholder": "例如：192.168.1.1 或 proxy.company.com",
+        "proxyPortPlaceholder": "例如：8080"
     }
 };
 
@@ -457,6 +490,8 @@ function App() {
     }, [activeTab]);
 
     const [showModelSettings, setShowModelSettings] = useState(false);
+    const [showProxySettings, setShowProxySettings] = useState(false);
+    const [proxyEditMode, setProxyEditMode] = useState<'global' | 'project'>('global');
 
     useEffect(() => {
         if (showModelSettings && activeTab === 0) {
@@ -649,6 +684,10 @@ function App() {
         // Config Logic
         LoadConfig().then((cfg) => {
             setConfig(cfg);
+            if (cfg && cfg.language) {
+                setLang(cfg.language);
+                SetLanguage(cfg.language);
+            }
             if (cfg && !cfg.hide_startup_popup) {
                 setShowStartupPopup(true);
             }
@@ -747,8 +786,14 @@ function App() {
     };
 
     const handleLangChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setLang(e.target.value);
-        SetLanguage(e.target.value);
+        const newLang = e.target.value;
+        setLang(newLang);
+        SetLanguage(newLang);
+        if (config) {
+            const newConfig = new main.AppConfig({...config, language: newLang});
+            setConfig(newConfig);
+            SaveConfig(newConfig);
+        }
     };
 
     const switchTool = (tool: string) => {
@@ -1534,6 +1579,17 @@ ${instruction}`;
                                         </div>
 
                                         <div style={{display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0}}>
+                                            <button
+                                                className="btn-link"
+                                                onClick={() => {
+                                                    setSelectedProjectForLaunch(proj.id);
+                                                    setProxyEditMode('project');
+                                                    setShowProxySettings(true);
+                                                }}
+                                                style={{display: 'flex', alignItems: 'center', gap: '4px'}}
+                                            >
+                                                <span>🌐</span>
+                                            </button>
                                             <button className="btn-link" onClick={() => {
                                                 SelectProjectDir().then(dir => {
                                                     if (dir) {
@@ -1584,6 +1640,18 @@ ${instruction}`;
                                 >
                                     <span>📂</span> {t("manageProjects")}
                                 </button>
+                                {!/window/i.test(navigator.userAgent) && (
+                                    <button
+                                        className="btn-link"
+                                        onClick={() => {
+                                            setProxyEditMode('global');
+                                            setShowProxySettings(true);
+                                        }}
+                                        style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '2px 12px', border: '1px solid var(--border-color)', height: '24px', borderRadius: '12px', fontSize: '0.7rem'}}
+                                    >
+                                        <span>🌐</span> {t("proxySettings")}
+                                    </button>
+                                )}
                             </div>
 
                             <div className="form-group" style={{marginTop: '15px', borderTop: '1px solid #f1f5f9', paddingTop: '15px'}}>
@@ -1721,7 +1789,7 @@ ${instruction}`;
                                                         marginBottom: '4px',
                                                         display: 'inline-block'
                                                     }}>
-                                                        会AI编程者得工作！
+                                                        {t("slogan")}
                                                     </div>
                                                     <br/>
                                                     <div style={{
@@ -1785,101 +1853,147 @@ ${instruction}`;
                                     <span style={{fontSize: '0.75rem', color: '#9ca3af'}}>{t("runnerStatus")}:</span>
                                     <span style={{fontSize: '0.85rem', fontWeight: 600, color: '#60a5fa', textTransform: 'capitalize'}}>{activeTool}</span>
                                     <span style={{color: '#d1d5db'}}>|</span>
-                                    <span style={{fontSize: '0.85rem', fontWeight: 600, color: '#374151'}}>
-                                        {(config as any)[activeTool].current_model === "Original" ? t("original") : (config as any)[activeTool].current_model}
+                                    <span 
+                                        style={{fontSize: '0.85rem', fontWeight: 600, color: '#374151'}}
+                                        title={(config as any)[activeTool].current_model === "Original" ? t("original") : (config as any)[activeTool].current_model}
+                                    >
+                                        {(() => {
+                                            const modelName = (config as any)[activeTool].current_model === "Original" ? t("original") : (config as any)[activeTool].current_model;
+                                            return modelName.length > 10 ? `${modelName.slice(0, 4)}...${modelName.slice(-4)}` : modelName;
+                                        })()}
                                     </span>
                                 </div>
-                                <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.8rem', color: '#6b7280'}}>
-                                    <input
-                                        type="checkbox"
-                                        checked={config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.yolo_mode || false}
-                                        onChange={(e) => {
-                                            const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
-                                            if (proj) {
-                                                const isWindows = /window/i.test(navigator.userAgent);
-                                                const newProjects = config.projects.map((p: any) => {
-                                                    if (p.id === proj.id) {
-                                                        const updated = { ...p, yolo_mode: e.target.checked };
-                                                        // On non-Windows, yolo and admin are mutually exclusive
-                                                        if (!isWindows && e.target.checked) {
-                                                            updated.admin_mode = false;
-                                                        }
-                                                        return updated;
-                                                    }
-                                                    return p;
-                                                });
-                                                const newConfig = new main.AppConfig({...config, projects: newProjects});
-                                                setConfig(newConfig);
-                                                SaveConfig(newConfig);
-                                            }
-                                        }}
-                                        style={{marginRight: '6px'}}
-                                    />
-                                    <span>{t("yoloModeLabel")}</span>
-                                    {config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.yolo_mode && (
-                                        <span style={{
-                                            marginLeft: '5px',
-                                            backgroundColor: '#fee2e2',
-                                            color: '#ef4444',
-                                            padding: '0 6px',
-                                            borderRadius: '4px',
-                                            fontSize: '0.7rem',
-                                            fontWeight: 'bold'
-                                        }}>
-                                            {t("danger")}
-                                        </span>
-                                    )}
-                                </label>
-                            </div>
-                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '15px'}}>
-                                <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.8rem', color: '#6b7280'}}>
-                                    <input
-                                        type="checkbox"
-                                        checked={config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.admin_mode || false}
-                                        onChange={(e) => {
-                                            const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
-                                            if (proj) {
-                                                const isWindows = /window/i.test(navigator.userAgent);
-                                                const newProjects = config.projects.map((p: any) => {
-                                                    if (p.id === proj.id) {
-                                                        const updated = { ...p, admin_mode: e.target.checked };
-                                                        // On non-Windows, yolo and admin are mutually exclusive
-                                                        if (!isWindows && e.target.checked) {
-                                                            updated.yolo_mode = false;
-                                                        }
-                                                        return updated;
-                                                    }
-                                                    return p;
-                                                });
-                                                const newConfig = new main.AppConfig({...config, projects: newProjects});
-                                                setConfig(newConfig);
-                                                SaveConfig(newConfig);
-                                            }
-                                        }}
-                                        style={{marginRight: '6px'}}
-                                    />
-                                    <span>{/window/i.test(navigator.userAgent) ? t("adminModeLabel") : t("rootModeLabel")}</span>
-                                </label>
-                                <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.8rem', color: '#6b7280'}}>
-                                    <input
-                                        type="checkbox"
-                                        checked={config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.python_project || false}
-                                        onChange={(e) => {
-                                            const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
-                                            if (proj) {
-                                                const newProjects = config.projects.map((p: any) =>
-                                                    p.id === proj.id ? { ...p, python_project: e.target.checked } : p
-                                                );
-                                                const newConfig = new main.AppConfig({...config, projects: newProjects});
-                                                setConfig(newConfig);
-                                                SaveConfig(newConfig);
-                                            }
-                                        }}
-                                        style={{marginRight: '6px'}}
-                                    />
-                                    <span>{t("pythonProjectLabel")}</span>
-                                </label>
-                                {config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.python_project && (
+                                                                <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.8rem', color: '#6b7280'}}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.yolo_mode || false}
+                                                                        onChange={(e) => {
+                                                                            const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                                                            if (proj) {
+                                                                                const isWindows = /window/i.test(navigator.userAgent);
+                                                                                const newProjects = config.projects.map((p: any) => {
+                                                                                    if (p.id === proj.id) {
+                                                                                        const updated = { ...p, yolo_mode: e.target.checked };
+                                                                                        // On non-Windows, yolo and admin are mutually exclusive
+                                                                                        if (!isWindows && e.target.checked) {
+                                                                                            updated.admin_mode = false;
+                                                                                        }
+                                                                                        return updated;
+                                                                                    }
+                                                                                    return p;
+                                                                                });
+                                                                                const newConfig = new main.AppConfig({...config, projects: newProjects});
+                                                                                setConfig(newConfig);
+                                                                                SaveConfig(newConfig);
+                                                                            }
+                                                                        }}
+                                                                        style={{marginRight: '6px'}}
+                                                                    />
+                                                                    <span>{t("yoloModeLabel")}</span>
+                                                                    {config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.yolo_mode && (
+                                                                        <span style={{
+                                                                            marginLeft: '2px',
+                                                                            backgroundColor: '#fee2e2',
+                                                                            color: '#ef4444',
+                                                                            padding: '0 4px',
+                                                                            borderRadius: '3px',
+                                                                            fontSize: '0.6rem',
+                                                                            fontWeight: 'bold'
+                                                                        }}>
+                                                                            {t("danger")}
+                                                                        </span>
+                                                                    )}
+                                                                </label>
+                                                                {!/window/i.test(navigator.userAgent) && (
+                                                                    <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.8rem', color: '#6b7280'}}>
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.use_proxy || false}
+                                                                            onChange={(e) => {
+                                                                                const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                                                                if (proj) {
+                                                                                    // If checking but not configured, show dialog
+                                                                                    if (e.target.checked && !proj.proxy_host && !config?.default_proxy_host) {
+                                                                                        setProxyEditMode('project');
+                                                                                        setShowProxySettings(true);
+                                                                                        return;
+                                                                                    }
+                                
+                                                                                    const newProjects = config.projects.map((p: any) =>
+                                                                                        p.id === proj.id ? { ...p, use_proxy: e.target.checked } : p
+                                                                                    );
+                                                                                    const newConfig = new main.AppConfig({...config, projects: newProjects});
+                                                                                    setConfig(newConfig);
+                                                                                    SaveConfig(newConfig);
+                                                                                }
+                                                                            }}
+                                                                            style={{marginRight: '6px'}}
+                                                                        />
+                                                                        <span>{t("proxyMode")}</span>
+                                                                        <span 
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                setProxyEditMode('project');
+                                                                                setShowProxySettings(true);
+                                                                            }}
+                                                                            style={{marginLeft: '4px', cursor: 'pointer', opacity: 0.7}}
+                                                                            title={t("proxySettings")}
+                                                                        >
+                                                                            ⚙️
+                                                                        </span>
+                                                                    </label>
+                                                                )}
+                                                            </div>
+                                                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '15px'}}>
+                                                                <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.8rem', color: '#6b7280'}}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.admin_mode || false}
+                                                                        onChange={(e) => {
+                                                                            const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                                                            if (proj) {
+                                                                                const isWindows = /window/i.test(navigator.userAgent);
+                                                                                const newProjects = config.projects.map((p: any) => {
+                                                                                    if (p.id === proj.id) {
+                                                                                        const updated = { ...p, admin_mode: e.target.checked };
+                                                                                        // On non-Windows, yolo and admin are mutually exclusive
+                                                                                        if (!isWindows && e.target.checked) {
+                                                                                            updated.yolo_mode = false;
+                                                                                        }
+                                                                                        return updated;
+                                                                                    }
+                                                                                    return p;
+                                                                                });
+                                                                                const newConfig = new main.AppConfig({...config, projects: newProjects});
+                                                                                setConfig(newConfig);
+                                                                                SaveConfig(newConfig);
+                                                                            }
+                                                                        }}
+                                                                        style={{marginRight: '6px'}}
+                                                                    />
+                                                                    <span>{/window/i.test(navigator.userAgent) ? t("adminModeLabel") : t("rootModeLabel")}</span>
+                                                                </label>
+                                                                <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.8rem', color: '#6b7280'}}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.python_project || false}
+                                                                        onChange={(e) => {
+                                                                            const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                                                            if (proj) {
+                                                                                const newProjects = config.projects.map((p: any) =>
+                                                                                    p.id === proj.id ? { ...p, python_project: e.target.checked } : p
+                                                                                );
+                                                                                const newConfig = new main.AppConfig({...config, projects: newProjects});
+                                                                                setConfig(newConfig);
+                                                                                SaveConfig(newConfig);
+                                                                            }
+                                                                        }}
+                                                                        style={{marginRight: '6px'}}
+                                                                    />
+                                                                    <span>{t("pythonProjectLabel")}</span>
+                                                                </label>
+                                                                {config?.projects?.find((p: any) => p.id === selectedProjectForLaunch)?.python_project && (
                                     <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                                         <span style={{fontSize: '0.8rem', color: '#6b7280'}}>{t("pythonEnvLabel")}:</span>
                                         <select
@@ -1976,19 +2090,31 @@ ${instruction}`;
                                     className="btn-launch"
                                     style={{padding: '8px 24px', textAlign: 'center'}}
                                     onClick={() => {
+                                        console.log("Launch button clicked. activeTool:", activeTool);
                                         const selectedProj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
                                         if (selectedProj) {
-                                            LaunchTool(activeTool, selectedProj.yolo_mode, selectedProj.admin_mode || false, selectedProj.python_project || false, selectedProj.python_env || "", selectedProj.path || "");
+                                            console.log("Launching tool with project:", selectedProj.name, "path:", selectedProj.path);
+                                            setStatus(lang === 'zh-Hans' ? "正在启动..." : "Launching...");
+                                            LaunchTool(activeTool, selectedProj.yolo_mode, selectedProj.admin_mode || false, selectedProj.python_project || false, selectedProj.python_env || "", selectedProj.path || "", selectedProj.use_proxy || false)
+                                                .then(() => {
+                                                    console.log("LaunchTool call returned successfully");
+                                                    setTimeout(() => setStatus(""), 2000);
+                                                })
+                                                .catch(err => {
+                                                    console.error("LaunchTool call failed:", err);
+                                                    setStatus("Error: " + err);
+                                                });
                                             // Update current project if different
                                             if (selectedProjectForLaunch !== config?.current_project) {
                                                 handleProjectSwitch(selectedProjectForLaunch);
                                             }
                                         } else {
+                                            console.error("No project found for launch ID:", selectedProjectForLaunch);
                                             setStatus(t("projectDirError"));
                                         }
                                     }}
                                 >
-                                    <span style={{marginRight: '6px'}}>🚀</span>{t("launch")}
+                                    <span style={{marginRight: '6px'}}>➤</span>{t("launch")}
                                 </button>
                             </div>
                         </div>
@@ -2395,7 +2521,7 @@ ${instruction}`;
                                 fontSize: '0.95rem',
                                 fontWeight: '700'
                             }}>
-                                会AI编程者得工作！
+                                {t("slogan")}
                             </p>
                             <p style={{
                                 margin: '4px 0 0 0', 
@@ -2587,6 +2713,217 @@ ${instruction}`;
                                 }}
                             >
                                 {t("confirm")}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Proxy Settings Dialog */}
+            {showProxySettings && config && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{width: '500px', textAlign: 'left'}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                            <h3 style={{margin: 0, color: '#60a5fa'}}>
+                                {proxyEditMode === 'global' ? t("proxySettings") + " - " + (lang === 'zh-Hans' ? '全局默认' : lang === 'zh-Hant' ? '全局預設' : 'Global Default') : t("proxySettings")}
+                            </h3>
+                            <button className="modal-close" onClick={() => setShowProxySettings(false)}>&times;</button>
+                        </div>
+
+                        {proxyEditMode === 'project' && config?.default_proxy_host && (
+                            <div style={{marginBottom: '15px', padding: '10px', backgroundColor: '#f0f9ff', borderRadius: '6px', fontSize: '0.85rem'}}>
+                                <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
+                                    <input
+                                        type="checkbox"
+                                        checked={(() => {
+                                            const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                            return proj && !proj.proxy_host;
+                                        })()}
+                                        onChange={(e) => {
+                                            const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                            if (proj && e.target.checked) {
+                                                const newProjects = config.projects.map((p: any) =>
+                                                    p.id === proj.id ? {
+                                                        ...p,
+                                                        proxy_host: '',
+                                                        proxy_port: '',
+                                                        proxy_username: '',
+                                                        proxy_password: ''
+                                                    } : p
+                                                );
+                                                const newConfig = new main.AppConfig({...config, projects: newProjects});
+                                                setConfig(newConfig);
+                                                SaveConfig(newConfig);
+                                            }
+                                        }}
+                                        style={{marginRight: '8px'}}
+                                    />
+                                    <span>{t("useDefaultProxy")} ({config.default_proxy_host}:{config.default_proxy_port})</span>
+                                </label>
+                            </div>
+                        )}
+
+                        <div className="form-group">
+                            <label className="form-label">{t("proxyHost")}</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={(() => {
+                                    if (proxyEditMode === 'global') {
+                                        return config?.default_proxy_host || '';
+                                    } else {
+                                        const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                        return proj?.proxy_host || '';
+                                    }
+                                })()}
+                                onChange={(e) => {
+                                    if (proxyEditMode === 'global') {
+                                        const newConfig = new main.AppConfig({...config, default_proxy_host: e.target.value});
+                                        setConfig(newConfig);
+                                    } else {
+                                        const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                        if (proj) {
+                                            const newProjects = config.projects.map((p: any) =>
+                                                p.id === proj.id ? { ...p, proxy_host: e.target.value } : p
+                                            );
+                                            const newConfig = new main.AppConfig({...config, projects: newProjects});
+                                            setConfig(newConfig);
+                                        }
+                                    }
+                                }}
+                                placeholder={t("proxyHostPlaceholder")}
+                                spellCheck={false}
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">{t("proxyPort")}</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={(() => {
+                                    if (proxyEditMode === 'global') {
+                                        return config?.default_proxy_port || '';
+                                    } else {
+                                        const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                        return proj?.proxy_port || '';
+                                    }
+                                })()}
+                                onChange={(e) => {
+                                    if (proxyEditMode === 'global') {
+                                        const newConfig = new main.AppConfig({...config, default_proxy_port: e.target.value});
+                                        setConfig(newConfig);
+                                    } else {
+                                        const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                        if (proj) {
+                                            const newProjects = config.projects.map((p: any) =>
+                                                p.id === proj.id ? { ...p, proxy_port: e.target.value } : p
+                                            );
+                                            const newConfig = new main.AppConfig({...config, projects: newProjects});
+                                            setConfig(newConfig);
+                                        }
+                                    }
+                                }}
+                                placeholder={t("proxyPortPlaceholder")}
+                                spellCheck={false}
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">{t("proxyUsername")}</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={(() => {
+                                    if (proxyEditMode === 'global') {
+                                        return config?.default_proxy_username || '';
+                                    } else {
+                                        const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                        return proj?.proxy_username || '';
+                                    }
+                                })()}
+                                onChange={(e) => {
+                                    if (proxyEditMode === 'global') {
+                                        const newConfig = new main.AppConfig({...config, default_proxy_username: e.target.value});
+                                        setConfig(newConfig);
+                                    } else {
+                                        const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                        if (proj) {
+                                            const newProjects = config.projects.map((p: any) =>
+                                                p.id === proj.id ? { ...p, proxy_username: e.target.value } : p
+                                            );
+                                            const newConfig = new main.AppConfig({...config, projects: newProjects});
+                                            setConfig(newConfig);
+                                        }
+                                    }
+                                }}
+                                spellCheck={false}
+                                autoComplete="off"
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">{t("proxyPassword")}</label>
+                            <input
+                                type="password"
+                                className="form-input"
+                                value={(() => {
+                                    if (proxyEditMode === 'global') {
+                                        return config?.default_proxy_password || '';
+                                    } else {
+                                        const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                        return proj?.proxy_password || '';
+                                    }
+                                })()}
+                                onChange={(e) => {
+                                    if (proxyEditMode === 'global') {
+                                        const newConfig = new main.AppConfig({...config, default_proxy_password: e.target.value});
+                                        setConfig(newConfig);
+                                    } else {
+                                        const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                        if (proj) {
+                                            const newProjects = config.projects.map((p: any) =>
+                                                p.id === proj.id ? { ...p, proxy_password: e.target.value } : p
+                                            );
+                                            const newConfig = new main.AppConfig({...config, projects: newProjects});
+                                            setConfig(newConfig);
+                                        }
+                                    }
+                                }}
+                                autoComplete="new-password"
+                            />
+                        </div>
+
+                        <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px'}}>
+                            <button
+                                className="btn-secondary"
+                                onClick={() => setShowProxySettings(false)}
+                                style={{padding: '8px 16px'}}
+                            >
+                                {t("cancel")}
+                            </button>
+                            <button
+                                className="btn-primary"
+                                onClick={() => {
+                                    SaveConfig(config);
+                                    setShowProxySettings(false);
+
+                                    // Auto-enable use_proxy after configuration (project mode only)
+                                    if (proxyEditMode === 'project') {
+                                        const proj = config?.projects?.find((p: any) => p.id === selectedProjectForLaunch);
+                                        if (proj && !proj.use_proxy) {
+                                            const newProjects = config.projects.map((p: any) =>
+                                                p.id === proj.id ? { ...p, use_proxy: true } : p
+                                            );
+                                            const newConfig = new main.AppConfig({...config, projects: newProjects});
+                                            setConfig(newConfig);
+                                            SaveConfig(newConfig);
+                                        }
+                                    }
+                                }}
+                                style={{padding: '8px 16px'}}
+                            >
+                                {t("saveChanges")}
                             </button>
                         </div>
                     </div>

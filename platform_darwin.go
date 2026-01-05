@@ -368,10 +368,14 @@ on error errMsg
 	display dialog "Failed to launch Terminal: " & errMsg
 end try`, terminalCmd)
 
-	a.log("Executing AppleScript...")
+	a.log("Executing AppleScript to launch Terminal...")
 	cmd := exec.Command("osascript", "-e", appleScript)
-	if err := cmd.Start(); err != nil {
-		a.log("Failed to launch Terminal: " + err.Error())
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		a.log(fmt.Sprintf("Failed to launch Terminal: %v, Output: %s", err, string(out)))
+		a.ShowMessage("Launch Error", fmt.Sprintf("Failed to launch Terminal: %v\n\n%s", err, string(out)))
+	} else {
+		a.log("Terminal launch command executed successfully")
 	}
 }
 

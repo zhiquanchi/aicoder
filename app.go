@@ -48,6 +48,12 @@ type ProjectConfig struct {
 	AdminMode     bool   `json:"admin_mode"`
 	PythonProject bool   `json:"python_project"` // Whether this is a Python project
 	PythonEnv     string `json:"python_env"`     // Selected Python/Anaconda environment
+	// Proxy settings (project-specific)
+	UseProxy      bool   `json:"use_proxy"`
+	ProxyHost     string `json:"proxy_host"`
+	ProxyPort     string `json:"proxy_port"`
+	ProxyUsername string `json:"proxy_username"`
+	ProxyPassword string `json:"proxy_password"`
 }
 
 type PythonEnvironment struct {
@@ -94,6 +100,12 @@ type AppConfig struct {
 	ShowOpenCode     bool            `json:"show_opencode"`
 	ShowCodeBuddy    bool            `json:"show_codebuddy"`
 	ShowQoder        bool            `json:"show_qoder"`
+	Language         string          `json:"language"`
+	// Proxy settings (global default)
+	DefaultProxyHost     string `json:"default_proxy_host"`
+	DefaultProxyPort     string `json:"default_proxy_port"`
+	DefaultProxyUsername string `json:"default_proxy_username"`
+	DefaultProxyPassword string `json:"default_proxy_password"`
 }
 
 // NewApp creates a new App application struct
@@ -1049,7 +1061,9 @@ func getBaseUrl(selectedModel *ModelConfig) string {
 	return baseUrl
 }
 
-func (a *App) LaunchTool(toolName string, yoloMode bool, adminMode bool, pythonProject bool, pythonEnv string, projectDir string) {
+func (a *App) LaunchTool(toolName string, yoloMode bool, adminMode bool, pythonProject bool, pythonEnv string, projectDir string, useProxy bool) {
+	a.log(fmt.Sprintf("LaunchTool called: %s, yolo=%v, admin=%v, py=%v, pyenv=%s, dir=%s, proxy=%v", 
+		toolName, yoloMode, adminMode, pythonProject, pythonEnv, projectDir, useProxy))
 	a.log(fmt.Sprintf("Launching %s...", toolName))
 
 	// Only process Python environment if pythonProject is true
@@ -1137,6 +1151,69 @@ func (a *App) LaunchTool(toolName string, yoloMode bool, adminMode bool, pythonP
 	a.clearEnvVars()
 
 	env := make(map[string]string)
+
+	// Proxy settings (macOS/Linux only)
+	if useProxy && goruntime.GOOS != "windows" {
+		var proxyHost, proxyPort, proxyUsername, proxyPassword string
+
+		// Get proxy configuration (matching project path > global default)
+		var targetProj *ProjectConfig
+		for i := range config.Projects {
+			if config.Projects[i].Path == projectDir {
+				targetProj = &config.Projects[i]
+				break
+			}
+		}
+		
+		// Fallback to CurrentProject if path match not found
+		if targetProj == nil {
+			for i := range config.Projects {
+				if config.Projects[i].Id == config.CurrentProject {
+					targetProj = &config.Projects[i]
+					break
+				}
+			}
+		}
+
+		if targetProj != nil {
+			proxyHost = targetProj.ProxyHost
+			proxyPort = targetProj.ProxyPort
+			proxyUsername = targetProj.ProxyUsername
+			proxyPassword = targetProj.ProxyPassword
+		}
+
+		// Use global default if project not configured
+		if proxyHost == "" {
+			proxyHost = config.DefaultProxyHost
+			proxyPort = config.DefaultProxyPort
+			proxyUsername = config.DefaultProxyUsername
+			proxyPassword = config.DefaultProxyPassword
+		}
+
+		if proxyHost != "" && proxyPort != "" {
+			var proxyURL string
+			if proxyUsername != "" && proxyPassword != "" {
+				proxyURL = fmt.Sprintf("http://%s:%s@%s:%s",
+					proxyUsername, proxyPassword, proxyHost, proxyPort)
+			} else {
+				proxyURL = fmt.Sprintf("http://%s:%s", proxyHost, proxyPort)
+			}
+
+			// Set proxy environment variables (both cases for compatibility)
+			os.Setenv("HTTP_PROXY", proxyURL)
+			os.Setenv("HTTPS_PROXY", proxyURL)
+			os.Setenv("http_proxy", proxyURL)
+			os.Setenv("https_proxy", proxyURL)
+
+			env["HTTP_PROXY"] = proxyURL
+			env["HTTPS_PROXY"] = proxyURL
+			env["http_proxy"] = proxyURL
+			env["https_proxy"] = proxyURL
+
+			a.log(fmt.Sprintf("Proxy enabled: %s:%s", proxyHost, proxyPort))
+		}
+	}
+
 	if strings.ToLower(selectedModel.ModelName) != "original" {
 		// --- OTHER PROVIDER MODE: WRITE CONFIG & SET ENV ---
 		
@@ -1353,7 +1430,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 						},
 						Projects:       oldConfig.Projects,
 						CurrentProject: oldConfig.CurrentProj,
-						ActiveTool:     "message",
+						ActiveTool:     "claude",
 						ShowGemini:     true,
 						ShowCodex:      true,
 						ShowOpenCode:   true,
@@ -1402,7 +1479,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 				},
 			},
 			CurrentProject: "default",
-			ActiveTool:     "message",
+			ActiveTool:     "claude",
 			ShowGemini:     true,
 			ShowCodex:      true,
 			ShowOpenCode:   true,
