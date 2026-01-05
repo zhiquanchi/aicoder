@@ -24,7 +24,7 @@ const subscriptionUrls: {[key: string]: string} = {
 };
 
 
-const APP_VERSION = "2.6.2.2200";
+const APP_VERSION = "2.6.3.2300";
 
 const translations: any = {
     "en": {
@@ -131,7 +131,7 @@ const translations: any = {
         "cancel": "Cancel",
         "confirm": "Confirm",
         "slogan": "AI programmers get the job!",
-        "proxySettings": "Proxy Set",
+        "proxySettings": "Proxy",
         "proxyHost": "Proxy Host",
         "proxyPort": "Proxy Port",
         "proxyUsername": "Username (Optional)",
@@ -247,13 +247,13 @@ const translations: any = {
         "confirm": "确定",
         "slogan": "会AI编程者得工作！",
         "proxySettings": "代理设置",
-        "proxyHost": "Proxy Host",
-        "proxyPort": "Proxy Port",
-        "proxyUsername": "Username (Optional)",
-        "proxyPassword": "Password (Optional)",
-        "proxyMode": "Proxy",
-        "proxyNotConfigured": "Proxy not configured. Please configure proxy settings first.",
-        "useDefaultProxy": "Use default proxy settings",
+        "proxyHost": "代理主机",
+        "proxyPort": "代理端口",
+        "proxyUsername": "用户名 (可选)",
+        "proxyPassword": "密码 (可选)",
+        "proxyMode": "代理",
+        "proxyNotConfigured": "代理未配置。请先配置代理设置。",
+        "useDefaultProxy": "使用默认代理设置",
         "proxyHostPlaceholder": "例如：192.168.1.1 或 proxy.company.com",
         "proxyPortPlaceholder": "例如：8080"
     },
@@ -360,13 +360,13 @@ const translations: any = {
         "confirm": "確定",
         "slogan": "會AI編程者得工作！",
         "proxySettings": "代理設置",
-        "proxyHost": "Proxy Host",
-        "proxyPort": "Proxy Port",
-        "proxyUsername": "使用者名稱（可選）",
-        "proxyPassword": "密碼（可選）",
-        "proxyMode": "Proxy",
-        "proxyNotConfigured": "Proxy not configured. Please configure proxy settings first.",
-        "useDefaultProxy": "Use default proxy settings",
+        "proxyHost": "代理主機",
+        "proxyPort": "代理端口",
+        "proxyUsername": "使用者名稱 (可選)",
+        "proxyPassword": "密碼 (可選)",
+        "proxyMode": "代理",
+        "proxyNotConfigured": "代理未配置。請先配置代理設置。",
+        "useDefaultProxy": "使用預設代理設置",
         "proxyHostPlaceholder": "例如：192.168.1.1 或 proxy.company.com",
         "proxyPortPlaceholder": "例如：8080"
     }
@@ -1249,7 +1249,7 @@ ${instruction}`;
                     </div>
                     {config?.show_gemini !== false && (
                     <div className={`sidebar-item ${navTab === 'gemini' ? 'active' : ''}`} onClick={() => switchTool('gemini')}>
-                        <span className="sidebar-icon">♊</span> <span>Gemini CLI</span>
+                        <span className="sidebar-icon">✨</span> <span>Gemini CLI</span>
                     </div>
                     )}
                     {config?.show_codex !== false && (

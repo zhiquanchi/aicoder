@@ -816,18 +816,24 @@ func (a *App) syncToGeminiSettings(config AppConfig) error {
 
 	dir, configPath, _ := a.getGeminiConfigPaths()
 
+	// If using original (Google official), clear config to use Google account auth
 	if strings.ToLower(selectedModel.ModelName) == "original" {
 		a.clearGeminiConfig()
+		a.log("Gemini: Using Google account authentication (Original mode)")
 		return nil
 	}
 
+	// Non-original mode: Configure to use environment variables
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
 
+	// Create config that tells gemini-cli to use environment variables
 	configData := map[string]interface{}{
-		"apiKey":  selectedModel.ApiKey,
-		"baseUrl": selectedModel.ModelUrl,
+		"useEnvironmentVariables": true,
+		// These values will be read from environment variables at runtime
+		"apiKey":  "", // Will use GEMINI_API_KEY env var
+		"baseUrl": "", // Will use GOOGLE_GEMINI_BASE_URL env var if set
 	}
 
 	// Use compact JSON format for faster serialization
@@ -844,6 +850,7 @@ func (a *App) syncToGeminiSettings(config AppConfig) error {
 		}
 	}
 
+	a.log(fmt.Sprintf("Gemini: Configured to use environment variables (API Key from env)"))
 	return os.WriteFile(configPath, configJson, 0644)
 }
 
@@ -1282,23 +1289,27 @@ func (a *App) LaunchTool(toolName string, yoloMode bool, adminMode bool, pythonP
 		}
 	} else {
 		// --- ORIGINAL MODE: CLEANUP SPECIFIC TOOL ONLY ---
-		
+
 		// Clear process environment variables for this tool
 		os.Unsetenv(envKey)
 		os.Unsetenv(envBaseUrl)
 		if strings.ToLower(toolName) == "claude" {
 			os.Unsetenv("ANTHROPIC_AUTH_TOKEN")
+			os.Unsetenv("ANTHROPIC_MODEL")
 			a.clearClaudeConfig()
 		} else if strings.ToLower(toolName) == "gemini" {
+			os.Unsetenv("GOOGLE_GEMINI_MODEL")
 			a.clearGeminiConfig()
 		} else if strings.ToLower(toolName) == "codex" {
 			os.Unsetenv("WIRE_API")
 			os.Unsetenv("OPENAI_API_KEY")
 			os.Unsetenv("OPENAI_BASE_URL")
+			os.Unsetenv("OPENAI_MODEL")
 			a.clearCodexConfig()
 		} else if strings.ToLower(toolName) == "opencode" {
 			os.Unsetenv("OPENCODE_API_KEY")
 			os.Unsetenv("OPENCODE_BASE_URL")
+			os.Unsetenv("OPENCODE_MODEL")
 			a.clearOpencodeConfig()
 		} else if strings.ToLower(toolName) == "codebuddy" {
 			os.Unsetenv("CODEBUDDY_API_KEY")
@@ -1309,7 +1320,7 @@ func (a *App) LaunchTool(toolName string, yoloMode bool, adminMode bool, pythonP
 			os.Unsetenv("QODER_PERSONAL_ACCESS_TOKEN")
 			// No base URL to unset for Qoder
 		}
-		
+
 		a.log(fmt.Sprintf("Running %s in Original mode: Custom configurations cleared.", toolName))
 	}
 

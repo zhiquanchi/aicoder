@@ -1,5 +1,5 @@
 export namespace main {
-
+	
 	export class ProjectConfig {
 	    id: string;
 	    name: string;
@@ -13,11 +13,11 @@ export namespace main {
 	    proxy_port: string;
 	    proxy_username: string;
 	    proxy_password: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new ProjectConfig(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -41,11 +41,11 @@ export namespace main {
 	    api_key: string;
 	    wire_api: string;
 	    is_custom: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new ModelConfig(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.model_name = source["model_name"];
@@ -59,17 +59,17 @@ export namespace main {
 	export class ToolConfig {
 	    current_model: string;
 	    models: ModelConfig[];
-
+	
 	    static createFrom(source: any = {}) {
 	        return new ToolConfig(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.current_model = source["current_model"];
 	        this.models = this.convertValues(source["models"], ModelConfig);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -109,11 +109,11 @@ export namespace main {
 	    default_proxy_port: string;
 	    default_proxy_username: string;
 	    default_proxy_password: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.claude = this.convertValues(source["claude"], ToolConfig);
@@ -137,7 +137,7 @@ export namespace main {
 	        this.default_proxy_username = source["default_proxy_username"];
 	        this.default_proxy_password = source["default_proxy_password"];
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -156,17 +156,17 @@ export namespace main {
 		    return a;
 		}
 	}
-
-
+	
+	
 	export class PythonEnvironment {
 	    name: string;
 	    path: string;
 	    type: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new PythonEnvironment(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -178,11 +178,11 @@ export namespace main {
 	    os: string;
 	    arch: string;
 	    os_version: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new SystemInfo(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.os = source["os"];
@@ -190,17 +190,17 @@ export namespace main {
 	        this.os_version = source["os_version"];
 	    }
 	}
-
+	
 	export class ToolStatus {
 	    name: string;
 	    installed: boolean;
 	    version: string;
 	    path: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new ToolStatus(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -213,11 +213,11 @@ export namespace main {
 	    has_update: boolean;
 	    latest_version: string;
 	    release_url: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new UpdateResult(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.has_update = source["has_update"];
