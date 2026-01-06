@@ -1812,64 +1812,82 @@ func getProviderModel(toolConfig *ToolConfig, providerName string) *ModelConfig 
 	return nil
 }
 
-// syncAllProviderApiKeys synchronizes apikeys of all providers (except 'Original') across all tools
+// syncAllProviderApiKeys synchronizes apikeys of all providers (except 'Original' and 'Custom') across all tools
 func syncAllProviderApiKeys(a *App, oldConfig, newConfig *AppConfig) {
-	// List of tools to sync
-	tools := []*ToolConfig{&newConfig.Claude, &newConfig.Gemini, &newConfig.Codex, &newConfig.Opencode, &newConfig.CodeBuddy, &newConfig.Qoder}
-	oldTools := []*ToolConfig{&oldConfig.Claude, &oldConfig.Gemini, &oldConfig.Codex, &oldConfig.Opencode, &oldConfig.CodeBuddy, &oldConfig.Qoder}
+	// Map of tools for easy access
+	tools := map[string]*ToolConfig{
+		"claude":    &newConfig.Claude,
+		"gemini":    &newConfig.Gemini,
+		"codex":     &newConfig.Codex,
+		"opencode":  &newConfig.Opencode,
+		"codebuddy": &newConfig.CodeBuddy,
+		"qoder":     &newConfig.Qoder,
+	}
+	oldTools := map[string]*ToolConfig{
+		"claude":    &oldConfig.Claude,
+		"gemini":    &oldConfig.Gemini,
+		"codex":     &oldConfig.Codex,
+		"opencode":  &oldConfig.Opencode,
+		"codebuddy": &oldConfig.CodeBuddy,
+		"qoder":     &oldConfig.Qoder,
+	}
 
-	// 1. Identify which provider's ApiKey has changed
-	var changedProvider string
-	var updatedApiKey string
-	foundChange := false
+	// providerName (lower) -> intended API key
+	intentions := make(map[string]string)
+	
+	activeToolName := strings.ToLower(newConfig.ActiveTool)
 
-	// Iterate through all tools and their models to find a change compared to oldConfig
-	for i, tool := range tools {
-		oldTool := oldTools[i]
-
-		// Check for ApiKey changes
-		for _, model := range tool.Models {
-			if strings.EqualFold(model.ModelName, "Original") {
-				continue
-			}
-			
-			// Exclude "Custom" providers or any provider marked as IsCustom
-			if strings.EqualFold(model.ModelName, "Custom") || model.IsCustom {
-				continue
-			}
-
-			oldModel := getProviderModel(oldTool, model.ModelName)
-			if oldModel != nil {
-				// If it existed before, check if ApiKey changed
-				if model.ApiKey != oldModel.ApiKey {
-					changedProvider = model.ModelName
-					updatedApiKey = model.ApiKey
-					foundChange = true
-					a.log(fmt.Sprintf("Sync: detected %s apikey change in tool config", changedProvider))
-					break
+	// 1. Detect Intent from Active Tool (Highest Priority)
+	if activeTool, ok := tools[activeToolName]; ok {
+		oldActive := oldTools[activeToolName]
+		if oldActive != nil {
+			for _, m := range activeTool.Models {
+				if strings.EqualFold(m.ModelName, "Original") || strings.EqualFold(m.ModelName, "Custom") || m.IsCustom {
+					continue
 				}
-			} else {
-				// New model added (not in oldTool)
-				if model.ApiKey != "" {
-					changedProvider = model.ModelName
-					updatedApiKey = model.ApiKey
-					foundChange = true
-					a.log(fmt.Sprintf("Sync: detected new provider %s with apikey", changedProvider))
-					break
+				oldM := getProviderModel(oldActive, m.ModelName)
+				// If key changed or a new key was added where none existed
+				if (oldM != nil && m.ApiKey != oldM.ApiKey) || (oldM == nil && m.ApiKey != "") {
+					intentions[strings.ToLower(m.ModelName)] = m.ApiKey
+					a.log(fmt.Sprintf("Sync: detected %s intent from active tool %s", m.ModelName, activeToolName))
 				}
 			}
-		}
-		if foundChange {
-			break
 		}
 	}
 
-	if foundChange {
-		a.log(fmt.Sprintf("Sync: propagating %s apikey to all tools", changedProvider))
-		for _, toolCfg := range tools {
-			for i := range toolCfg.Models {
-				if strings.EqualFold(toolCfg.Models[i].ModelName, changedProvider) {
-					toolCfg.Models[i].ApiKey = updatedApiKey
+	// 2. Detect Intent from other tools (if not already captured from active tool)
+	for name, tool := range tools {
+		if name == activeToolName {
+			continue
+		}
+		oldTool := oldTools[name]
+		if oldTool == nil {
+			continue
+		}
+		for _, m := range tool.Models {
+			if strings.EqualFold(m.ModelName, "Original") || strings.EqualFold(m.ModelName, "Custom") || m.IsCustom {
+				continue
+			}
+			lowerName := strings.ToLower(m.ModelName)
+			if _, handled := intentions[lowerName]; handled {
+				continue
+			}
+			oldM := getProviderModel(oldTool, m.ModelName)
+			if (oldM != nil && m.ApiKey != oldM.ApiKey) || (oldM == nil && m.ApiKey != "") {
+				intentions[lowerName] = m.ApiKey
+				a.log(fmt.Sprintf("Sync: detected %s intent from tool %s", m.ModelName, name))
+			}
+		}
+	}
+
+	// 3. Propagate all intentions to ALL tools
+	for providerLower, targetKey := range intentions {
+		for _, tool := range tools {
+			for i := range tool.Models {
+				if strings.ToLower(tool.Models[i].ModelName) == providerLower {
+					if tool.Models[i].ApiKey != targetKey {
+						tool.Models[i].ApiKey = targetKey
+					}
 				}
 			}
 		}
@@ -1877,6 +1895,21 @@ func syncAllProviderApiKeys(a *App, oldConfig, newConfig *AppConfig) {
 }
 
 func (a *App) SaveConfig(config AppConfig) error {
+	// Sanitize: Ensure Custom models have a name (prevent empty tab button)
+	sanitizeCustomNames := func(models []ModelConfig) {
+		for i := range models {
+			if models[i].IsCustom && strings.TrimSpace(models[i].ModelName) == "" {
+				models[i].ModelName = "Custom"
+			}
+		}
+	}
+	sanitizeCustomNames(config.Claude.Models)
+	sanitizeCustomNames(config.Gemini.Models)
+	sanitizeCustomNames(config.Codex.Models)
+	sanitizeCustomNames(config.Opencode.Models)
+	sanitizeCustomNames(config.CodeBuddy.Models)
+	sanitizeCustomNames(config.Qoder.Models)
+
 	// Load old config to compare for sync logic
 	var oldConfig AppConfig
 	path, _ := a.getConfigPath()

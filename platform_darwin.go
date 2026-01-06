@@ -149,8 +149,8 @@ func (a *App) CheckEnvironment() {
 				}
 			} else {
 				a.log(fmt.Sprintf("%s found (version: %s).", tool, status.Version))
-				// Check for updates for opencode and codebuddy
-				if tool == "opencode" || tool == "codebuddy" || tool == "qoder" {
+				// Check for updates for codex, opencode, codebuddy and qoder
+				if tool == "codex" || tool == "opencode" || tool == "codebuddy" || tool == "qoder" {
 					a.log(fmt.Sprintf("Checking for %s updates...", tool))
 					latest, err := a.getLatestNpmVersion(npmExec, tm.GetPackageName(tool))
 					if err == nil && latest != "" && latest != status.Version {
