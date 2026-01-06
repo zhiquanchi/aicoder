@@ -57,9 +57,17 @@ cd "%~dp0"
 
 REM -- Generate Windows Resources --
 echo [Step 5/7] Generating Windows resources...
-powershell -Command "$manifest = Get-Content -Path '%~dp0build\windows\wails.exe.manifest' -Raw; $manifest = $manifest -replace '{{.Name}}', '%APP_NAME%'; $manifest = $manifest -replace '{{.Info.ProductVersion}}.0', '%VERSION%'; Set-Content -Path '%~dp0build\windows\wails.exe.manifest.tmp' -Value $manifest -Encoding UTF8"
-rsrc.exe -manifest "%~dp0build\windows\wails.exe.manifest.tmp" -ico "%~dp0build\windows\icon.ico" -arch amd64 -o "%~dp0resource_windows_amd64.syso"
-rsrc.exe -manifest "%~dp0build\windows\wails.exe.manifest.tmp" -ico "%~dp0build\windows\icon.ico" -arch arm64 -o "%~dp0resource_windows_arm64.syso"
+powershell -Command "[IO.File]::WriteAllText('%~dp0build\windows\wails.exe.manifest.tmp', [IO.File]::ReadAllText('%~dp0build\windows\wails.exe.manifest').Replace('{{.Name}}', '%APP_NAME%').Replace('{{.Info.ProductVersion}}', '%VERSION%'))"
+"%GOPATH%\bin\rsrc.exe" -manifest "%~dp0build\windows\wails.exe.manifest.tmp" -ico "%~dp0build\windows\icon.ico" -arch amd64 -o "%~dp0resource_windows_amd64.syso"
+if %errorlevel% neq 0 (
+    echo [ERROR] Failed to generate amd64 resources.
+    goto :error
+)
+"%GOPATH%\bin\rsrc.exe" -manifest "%~dp0build\windows\wails.exe.manifest.tmp" -ico "%~dp0build\windows\icon.ico" -arch arm64 -o "%~dp0resource_windows_arm64.syso"
+if %errorlevel% neq 0 (
+    echo [ERROR] Failed to generate arm64 resources.
+    goto :error
+)
 del "%~dp0build\windows\wails.exe.manifest.tmp"
 
 REM -- Build Go Binaries --
