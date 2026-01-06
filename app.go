@@ -1818,57 +1818,36 @@ func syncAllProviderApiKeys(a *App, oldConfig, newConfig *AppConfig) {
 	tools := []*ToolConfig{&newConfig.Claude, &newConfig.Gemini, &newConfig.Codex, &newConfig.Opencode, &newConfig.CodeBuddy, &newConfig.Qoder}
 	oldTools := []*ToolConfig{&oldConfig.Claude, &oldConfig.Gemini, &oldConfig.Codex, &oldConfig.Opencode, &oldConfig.CodeBuddy, &oldConfig.Qoder}
 
-	// 1. Identify which provider's ApiKey has changed
-	var changedProvider string
-	var updatedApiKey string
-	foundChange := false
+	// Map to track the most recently changed API keys per provider
+	changedProviders := make(map[string]string)
 
-	// Iterate through all tools and their models to find a change compared to oldConfig
+	// 1. Collect all changes from all tools
 	for i, tool := range tools {
 		oldTool := oldTools[i]
 
-		// Check for ApiKey changes
 		for _, model := range tool.Models {
-			if strings.EqualFold(model.ModelName, "Original") {
-				continue
-			}
-			
-			// Exclude "Custom" providers or any provider marked as IsCustom
-			if strings.EqualFold(model.ModelName, "Custom") || model.IsCustom {
+			// Skip Original and Custom models
+			if strings.EqualFold(model.ModelName, "Original") || strings.EqualFold(model.ModelName, "Custom") || model.IsCustom {
 				continue
 			}
 
 			oldModel := getProviderModel(oldTool, model.ModelName)
-			if oldModel != nil {
-				// If it existed before, check if ApiKey changed
-				if model.ApiKey != oldModel.ApiKey {
-					changedProvider = model.ModelName
-					updatedApiKey = model.ApiKey
-					foundChange = true
-					a.log(fmt.Sprintf("Sync: detected %s apikey change in tool config", changedProvider))
-					break
-				}
-			} else {
-				// New model added (not in oldTool)
-				if model.ApiKey != "" {
-					changedProvider = model.ModelName
-					updatedApiKey = model.ApiKey
-					foundChange = true
-					a.log(fmt.Sprintf("Sync: detected new provider %s with apikey", changedProvider))
-					break
-				}
+			// Sync if:
+			// - Model didn't exist before and has an API key
+			// - Model existed and its API key changed (including deletion/clearing)
+			if (oldModel == nil && model.ApiKey != "") || (oldModel != nil && model.ApiKey != oldModel.ApiKey) {
+				changedProviders[strings.ToLower(model.ModelName)] = model.ApiKey
+				a.log(fmt.Sprintf("Sync: detected %s apikey change/deletion", model.ModelName))
 			}
-		}
-		if foundChange {
-			break
 		}
 	}
 
-	if foundChange {
-		a.log(fmt.Sprintf("Sync: propagating %s apikey to all tools", changedProvider))
+	// 2. Propagate all detected changes to all tools
+	for providerLower, updatedApiKey := range changedProviders {
+		a.log(fmt.Sprintf("Sync: propagating %s apikey to all tools", providerLower))
 		for _, toolCfg := range tools {
 			for i := range toolCfg.Models {
-				if strings.EqualFold(toolCfg.Models[i].ModelName, changedProvider) {
+				if strings.ToLower(toolCfg.Models[i].ModelName) == providerLower {
 					toolCfg.Models[i].ApiKey = updatedApiKey
 				}
 			}
