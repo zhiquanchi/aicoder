@@ -160,23 +160,24 @@ func (tm *ToolManager) InstallTool(name string) error {
 	// Use --prefix to install to our local folder, avoiding sudo/permission issues
 	// This works with both system npm and local npm.
 	
-	packages := []string{packageName}
+	// Add @latest to ensure latest version is installed
+	packages := []string{packageName + "@latest"}
 	if name == "opencode" && runtime.GOOS != "windows" {
 		var platformPkg string
 		if runtime.GOOS == "darwin" {
 			if runtime.GOARCH == "arm64" {
-				platformPkg = "opencode-darwin-arm64"
+				platformPkg = "opencode-darwin-arm64@latest"
 			} else {
-				platformPkg = "opencode-darwin-x64"
+				platformPkg = "opencode-darwin-x64@latest"
 			}
 		} else if runtime.GOOS == "linux" {
 			if runtime.GOARCH == "arm64" {
-				platformPkg = "opencode-linux-arm64"
+				platformPkg = "opencode-linux-arm64@latest"
 			} else {
-				platformPkg = "opencode-linux-x64"
+				platformPkg = "opencode-linux-x64@latest"
 			}
 		}
-		
+
 		if platformPkg != "" {
 			packages = append(packages, platformPkg)
 		}

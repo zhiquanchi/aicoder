@@ -25,7 +25,7 @@ const subscriptionUrls: {[key: string]: string} = {
 };
 
 
-const APP_VERSION = "2.6.4.2350";
+const APP_VERSION = "2.6.4.$buildNum"
 
 const translations: any = {
     "en": {
@@ -933,11 +933,71 @@ function App() {
         return translations[lang][key] || translations["en"][key] || key;
     };
 
+    // Extract provider name from model name
+    // Examples: "AICodeMirror-Claude" -> "AICodeMirror", "Doubao-Codex" -> "Doubao", "GLM" -> "GLM"
+    const getProviderPrefix = (modelName: string): string => {
+        // Match pattern like "Provider-Tool" (e.g., "AICodeMirror-Claude", "DeepSeek-Codex")
+        const match = modelName.match(/^(.+?)-(Claude|Gemini|Codex)$/i);
+        if (match) {
+            return match[1];
+        }
+        // For names without tool suffix, return the full name as provider
+        return modelName;
+    };
+
     const handleApiKeyChange = (newKey: string) => {
         if (!config) return;
-        const toolCfg = JSON.parse(JSON.stringify((config as any)[activeTool]));
-        toolCfg.models[activeTab].api_key = newKey;
-        const newConfig = new main.AppConfig({...config, [activeTool]: toolCfg});
+
+        // Deep clone the entire config
+        const configCopy = JSON.parse(JSON.stringify(config));
+
+        // Get current model info
+        const currentModel = configCopy[activeTool].models[activeTab];
+        const currentModelName = currentModel.model_name;
+        const isCurrentCustom = currentModel.is_custom;
+
+        // Update current model's API key
+        configCopy[activeTool].models[activeTab].api_key = newKey;
+
+        const providerPrefix = getProviderPrefix(currentModelName);
+
+        console.log('[API Key Sync] Current tool:', activeTool, 'Model:', currentModelName, 'Provider:', providerPrefix, 'Is custom:', isCurrentCustom);
+
+        // Skip syncing for "Original" model and custom models
+        if (providerPrefix !== "Original" && !isCurrentCustom) {
+            const tools = ['claude', 'gemini', 'codex', 'opencode', 'codebuddy', 'qoder'];
+            let syncCount = 0;
+
+            tools.forEach(tool => {
+                if (configCopy[tool] && configCopy[tool].models && Array.isArray(configCopy[tool].models)) {
+                    configCopy[tool].models.forEach((model: any, index: number) => {
+                        // Skip the current model being edited
+                        if (tool === activeTool && index === activeTab) {
+                            return;
+                        }
+
+                        // Skip custom models
+                        if (model.is_custom) {
+                            return;
+                        }
+
+                        // Check if model belongs to the same provider
+                        const modelProvider = getProviderPrefix(model.model_name);
+                        if (modelProvider === providerPrefix) {
+                            console.log('[API Key Sync] Syncing to:', tool, 'index:', index, 'model:', model.model_name);
+                            configCopy[tool].models[index].api_key = newKey;
+                            syncCount++;
+                        }
+                    });
+                }
+            });
+
+            console.log('[API Key Sync] Total synced models:', syncCount);
+        } else {
+            console.log('[API Key Sync] Skipped - Original model or custom model');
+        }
+
+        const newConfig = new main.AppConfig(configCopy);
         setConfig(newConfig);
     };
 
@@ -1147,8 +1207,25 @@ function App() {
 
     const save = () => {
         if (!config) return;
+
+        // Sanitize: Ensure Custom models have a name (prevent empty tab button)
+        const configCopy = JSON.parse(JSON.stringify(config));
+        const tools = ['claude', 'gemini', 'codex', 'opencode', 'codebuddy', 'qoder'];
+        tools.forEach(tool => {
+            if (configCopy[tool] && configCopy[tool].models) {
+                configCopy[tool].models.forEach((model: any) => {
+                    if (model.is_custom && (!model.model_name || model.model_name.trim() === '')) {
+                        model.model_name = 'Custom';
+                    }
+                });
+            }
+        });
+
+        const sanitizedConfig = new main.AppConfig(configCopy);
+        setConfig(sanitizedConfig);
+
         setStatus(t("saving"));
-        SaveConfig(config).then(() => {
+        SaveConfig(sanitizedConfig).then(() => {
             setStatus(t("saved"));
             setTimeout(() => {
                 setStatus("");

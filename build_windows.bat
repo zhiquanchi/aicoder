@@ -1,0 +1,106 @@
+@echo off
+setlocal
+
+REM ==============================================================================
+REM == Batch Script to Build and Package the AICoder Application for Windows    ==
+REM ==============================================================================
+
+echo [INFO] Starting the build process...
+
+REM -- Set Environment Variables --
+set "APP_NAME=AICoder"
+set "OUTPUT_DIR=%~dp0dist"
+set "BIN_DIR=%~dp0build\bin"
+set "NSIS_PATH=C:\Program Files (x86)\NSIS\makensis.exe"
+
+REM -- Ensure Go tools are in PATH --
+set "GOPATH=%USERPROFILE%\go"
+set "PATH=%GOPATH%\bin;%PATH%"
+
+REM -- Clean previous build artifacts --
+echo [Step 1/7] Cleaning previous build...
+if exist "%OUTPUT_DIR%" (
+    rmdir /s /q "%OUTPUT_DIR%"
+)
+if not exist "%BIN_DIR%" (
+    mkdir "%BIN_DIR%"
+)
+mkdir "%OUTPUT_DIR%"
+
+REM -- Increment build number and set version --
+echo [Step 2/7] Updating version number...
+powershell -Command "if (Test-Path 'build_number') { $buildNum = [int](Get-Content 'build_number') + 1 } else { $buildNum = 1 }; Set-Content -Path 'build_number' -Value $buildNum; '$buildNum' | Out-File -FilePath 'temp_build_num.txt' -Encoding ascii"
+set /p BUILD_NUM=<temp_build_num.txt
+del temp_build_num.txt
+set "VERSION=2.6.4.%BUILD_NUM%"
+echo [INFO] Building Version: %VERSION%
+
+REM -- Sync version with frontend --
+echo [Step 3/7] Syncing version with frontend...
+powershell -Command "$filePath = '%~dp0frontend\src\App.tsx'; $content = [System.IO.File]::ReadAllText($filePath); $newContent = $content -replace 'const APP_VERSION = \".*\";', 'const APP_VERSION = \"%VERSION%\"'; [System.IO.File]::WriteAllText($filePath, $newContent, [System.Text.UTF8Encoding]::new($false))"
+powershell -Command "\"export const buildNumber = `\"%BUILD_NUM%`\";\" | Set-Content -Path '%~dp0frontend\src\version.ts' -Encoding Utf8"
+
+REM -- Build Frontend --
+echo [Step 4/7] Building frontend...
+cd "%~dp0frontend"
+call npm.cmd install --cache ./.npm_cache
+if %errorlevel% neq 0 (
+    echo [ERROR] npm install failed.
+    goto :error
+)
+call npm.cmd run build
+if %errorlevel% neq 0 (
+    echo [ERROR] Frontend build failed.
+    goto :error
+)
+cd "%~dp0"
+
+REM -- Generate Windows Resources --
+echo [Step 5/7] Generating Windows resources...
+powershell -Command "$manifest = Get-Content -Path '%~dp0build\windows\wails.exe.manifest' -Raw; $manifest = $manifest -replace '{{.Name}}', '%APP_NAME%'; $manifest = $manifest -replace '{{.Info.ProductVersion}}.0', '%VERSION%'; Set-Content -Path '%~dp0build\windows\wails.exe.manifest.tmp' -Value $manifest -Encoding UTF8"
+rsrc.exe -manifest "%~dp0build\windows\wails.exe.manifest.tmp" -ico "%~dp0build\windows\icon.ico" -arch amd64 -o "%~dp0resource_windows_amd64.syso"
+rsrc.exe -manifest "%~dp0build\windows\wails.exe.manifest.tmp" -ico "%~dp0build\windows\icon.ico" -arch arm64 -o "%~dp0resource_windows_arm64.syso"
+del "%~dp0build\windows\wails.exe.manifest.tmp"
+
+REM -- Build Go Binaries --
+echo [Step 6/7] Compiling Go binaries...
+set "GOOS=windows"
+set "CGO_ENABLED=0"
+set "GOARCH=amd64"
+go build -tags desktop,production -ldflags "-s -w -H windowsgui" -o "%BIN_DIR%\%APP_NAME%_amd64.exe"
+if %errorlevel% neq 0 (
+    echo [ERROR] Go build for amd64 failed.
+    goto :error
+)
+set "GOARCH=arm64"
+go build -tags desktop,production -ldflags "-s -w -H windowsgui" -o "%BIN_DIR%\%APP_NAME%_arm64.exe"
+if %errorlevel% neq 0 (
+    echo [ERROR] Go build for arm64 failed.
+    goto :error
+)
+del "%~dp0resource_windows_amd64.syso"
+del "%~dp0resource_windows_arm64.syso"
+
+REM -- Create NSIS Installer --
+echo [Step 7/7] Creating NSIS installer...
+if not exist "%NSIS_PATH%" (
+    echo [ERROR] NSIS not found at %NSIS_PATH%. Please install NSIS.
+    goto :error
+)
+"%NSIS_PATH%" /DINFO_PRODUCTVERSION="%VERSION%" /DARG_WAILS_AMD64_BINARY="%BIN_DIR%\%APP_NAME%_amd64.exe" /DARG_WAILS_ARM64_BINARY="%BIN_DIR%\%APP_NAME%_arm64.exe" "%~dp0build\windows\installer\multiarch.nsi"
+if %errorlevel% neq 0 (
+    echo [ERROR] NSIS installer creation failed.
+    goto :error
+)
+
+echo.
+echo [SUCCESS] Build and packaging complete!
+echo Installer created at: %BIN_DIR%\%APP_NAME%-Setup.exe
+goto :eof
+
+:error
+echo.
+echo [FAILED] The build process failed. Please check the output above for errors.
+exit /b 1
+
+endlocal
