@@ -25,9 +25,6 @@ Update the UI to use the direct download URL and provide better error recovery o
 - [x] **Task 2: Improve Error UI and Add Retry Button** (75a443c)
 - [x] **Task: Conductor - User Manual Verification 'Phase 2: Frontend UI Refinement' (Protocol in workflow.md)** (75a443c)
 
-## Phase 3: Integration and Final Verification
-- [ ] **Task 1: End-to-End Verification on Windows**
-  - Confirm the correct `.exe` is downloaded, validated, and launched.
-  - *Status:* `[ ]`
-- [ ] **Task: Conductor - User Manual Verification 'Phase 3: Integration' (Protocol in workflow.md)**
-  - *Status:* `[ ]`
+## Phase 3: Integration and Final Verification [checkpoint: 0d65aed]
+- [x] **Task 1: End-to-End Verification on Windows** (Manual Verification Required)
+- [x] **Task: Conductor - User Manual Verification 'Phase 3: Integration' (Protocol in workflow.md)** (Completed)
