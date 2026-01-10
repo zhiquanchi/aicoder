@@ -107,6 +107,7 @@ export namespace main {
 	    show_qoder: boolean;
 	    show_iflow: boolean;
 	    language: string;
+	    check_update_on_startup: boolean;
 	    default_proxy_host: string;
 	    default_proxy_port: string;
 	    default_proxy_username: string;
@@ -136,6 +137,7 @@ export namespace main {
 	        this.show_qoder = source["show_qoder"];
 	        this.show_iflow = source["show_iflow"];
 	        this.language = source["language"];
+	        this.check_update_on_startup = source["check_update_on_startup"];
 	        this.default_proxy_host = source["default_proxy_host"];
 	        this.default_proxy_port = source["default_proxy_port"];
 	        this.default_proxy_username = source["default_proxy_username"];

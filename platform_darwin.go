@@ -21,7 +21,7 @@ func (a *App) platformStartup() {
 
 func (a *App) CheckEnvironment() {
 	go func() {
-		a.log("Checking Node.js installation...")
+		a.log(a.tr("Checking Node.js installation..."))
 		
 		home, _ := os.UserHomeDir()
 		localNodeDir := filepath.Join(home, ".cceasy", "tools")
@@ -180,7 +180,7 @@ func (a *App) installNodeJSManually(destDir string) error {
 	fileName := fmt.Sprintf("node-%s-darwin-%s.tar.gz", version, arch)
 	url := fmt.Sprintf("https://nodejs.org/dist/%s/%s", version, fileName)
 	
-	a.log("Downloading Node.js from " + url)
+	a.log(a.tr("Downloading Node.js from %s", url))
 	
 	resp, err := http.Get(url)
 	if err != nil {
@@ -218,7 +218,7 @@ func (a *App) installNodeJSManually(destDir string) error {
 		return err
 	}
 	
-	a.log("Extracting Node.js (this should be fast)...")
+	a.log(a.tr("Extracting Node.js (this should be fast)..."))
 	
 	// Using native tar command on the file
 	// -x: extract, -z: gunzip, -f: file, -C: directory, --strip-components 1: remove root folder

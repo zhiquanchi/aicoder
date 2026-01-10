@@ -104,6 +104,7 @@ type AppConfig struct {
 	ShowQoder        bool            `json:"show_qoder"`
 	ShowIFlow        bool            `json:"show_iflow"`
 	Language         string          `json:"language"`
+	CheckUpdateOnStartup bool        `json:"check_update_on_startup"`
 	// Proxy settings (global default)
 	DefaultProxyHost     string `json:"default_proxy_host"`
 	DefaultProxyPort     string `json:"default_proxy_port"`
@@ -125,8 +126,11 @@ func (a *App) startup(ctx context.Context) {
 	a.startConfigWatcher()
 
 	// Initialize CodeBuddy config in project directory
-	if _, err := a.LoadConfig(); err == nil {
+	if config, err := a.LoadConfig(); err == nil {
 		// a.syncToCodeBuddySettings(config, "")
+		if config.Language != "" {
+			a.SetLanguage(config.Language)
+		}
 	}
 }
 
@@ -3460,23 +3464,59 @@ func (a *App) PackLog(logContent string) (string, error) {
 
 		
 
-				    "Downloading Git %s...": {
+				    				    "Downloading Git %s...": {
 
 		
 
-				        "zh-Hans": "正在下载 Git %s...",
+				    		
 
 		
 
-				        "zh-Hant": "正在下載 Git %s...",
+				    				        "zh-Hans": "正在下载 Git %s...",
 
 		
 
-				    },
+				    		
 
 		
 
-				    "Node.js installer is not accessible (Status: %s). Please check your internet connection or mirror availability.": {
+				    				        "zh-Hant": "正在下載 Git %s...",
+
+		
+
+				    		
+
+		
+
+				    				    },
+
+		
+
+				    
+
+		
+
+				    					"Downloading Node.js (%.1f%%): %d/%d bytes": {
+
+		
+
+				    						"zh-Hans": "正在下载 Node.js (%.1f%%): %d/%d 字节",
+
+		
+
+				    						"zh-Hant": "正在下載 Node.js (%.1f%%): %d/%d 字節",
+
+		
+
+				    					},
+
+		
+
+				    		
+
+		
+
+				    				    "Node.js installer is not accessible (Status: %s). Please check your internet connection or mirror availability.": {
 
 		
 
@@ -3588,23 +3628,139 @@ func (a *App) PackLog(logContent string) (string, error) {
 
 		
 
-				        "Manual installation failed: ": {
+				        				        "Manual installation failed: ": {
 
 		
 
-				            "zh-Hans": "手动安装失败: ",
+				        		
 
 		
 
-				            "zh-Hant": "手動安裝失敗: ",
+				        				            "zh-Hans": "手动安装失败: ",
 
 		
 
-				        },
+				        		
 
 		
 
-				        "Node.js manually installed to ": {
+				        				            "zh-Hant": "手動安裝失敗: ",
+
+		
+
+				        		
+
+		
+
+				        				        },
+
+		
+
+				        
+
+		
+
+				        						"Downloading Node.js from %s": {
+
+		
+
+				        							"zh-Hans": "正在从 %s 下载 Node.js",
+
+		
+
+				        							"zh-Hant": "正在從 %s 下載 Node.js",
+
+		
+
+				        						},
+
+		
+
+				        
+
+		
+
+				        												"Extracting Node.js (this should be fast)...": {
+
+		
+
+				        
+
+		
+
+				        													"zh-Hans": "正在解压 Node.js (这应该很快)...",
+
+		
+
+				        
+
+		
+
+				        													"zh-Hant": "正在解壓 Node.js (這應該很快)...",
+
+		
+
+				        
+
+		
+
+				        												},
+
+		
+
+				        
+
+		
+
+				        						
+
+		
+
+				        
+
+		
+
+				        												"Extracting Node.js...": {
+
+		
+
+				        
+
+		
+
+				        													"zh-Hans": "正在解压 Node.js...",
+
+		
+
+				        
+
+		
+
+				        													"zh-Hant": "正在解壓 Node.js...",
+
+		
+
+				        
+
+		
+
+				        												},
+
+		
+
+				        
+
+		
+
+				        								
+
+		
+
+				        
+
+		
+
+				        										        "Node.js manually installed to ": {
 
 		
 

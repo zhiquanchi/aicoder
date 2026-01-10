@@ -22,7 +22,7 @@ func (a *App) platformStartup() {
 
 func (a *App) CheckEnvironment() {
 	go func() {
-		a.log("Checking Node.js installation...")
+		a.log(a.tr("Checking Node.js installation..."))
 		
 		home, _ := os.UserHomeDir()
 		localNodeDir := filepath.Join(home, ".cceasy", "tools")
@@ -154,7 +154,7 @@ downloadURL := fmt.Sprintf("https://nodejs.org/dist/v%s/%s", version, fileName)
 		downloadURL = fmt.Sprintf("https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/v%s/%s", version, fileName)
 	}
 
-	a.log(fmt.Sprintf("Downloading Node.js v%s from %s...", version, downloadURL))
+	a.log(a.tr("Downloading Node.js v%s from %s...", version, downloadURL))
 	
 	req, err := http.NewRequest("GET", downloadURL, nil)
 	if err != nil {
@@ -192,7 +192,7 @@ downloadURL := fmt.Sprintf("https://nodejs.org/dist/v%s/%s", version, fileName)
 			downloaded += int64(n)
 			if size > 0 && time.Since(lastReport) > 500*time.Millisecond {
 				percent := float64(downloaded) / float64(size) * 100
-				a.log(fmt.Sprintf("Downloading Node.js (%.1f%%): %d/%d bytes", percent, downloaded, size))
+				a.log(a.tr("Downloading Node.js (%.1f%%): %d/%d bytes", percent, downloaded, size))
 				lastReport = time.Now()
 			}
 		}
@@ -214,7 +214,7 @@ downloadURL := fmt.Sprintf("https://nodejs.org/dist/v%s/%s", version, fileName)
 		return err
 	}
 	
-a.log("Extracting Node.js...")
+a.log(a.tr("Extracting Node.js..."))
 	cmd := exec.Command("tar", "-xJf", tempFile.Name(), "-C", destDir, "--strip-components", "1")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("tar extraction failed: %v, output: %s", err, string(out))

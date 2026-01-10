@@ -33,7 +33,7 @@ const subscriptionUrls: {[key: string]: string} = {
 };
 
 
-const APP_VERSION = "3.0.0.3000"
+const APP_VERSION = "3.1.0.3100"
 
 const translations: any = {
     "en": {
@@ -155,7 +155,8 @@ const translations: any = {
         "useDefaultProxy": "Use default proxy settings",
         "proxyHostPlaceholder": "e.g., 192.168.1.1 or proxy.company.com",
         "proxyPortPlaceholder": "e.g., 8080",
-        "freeload": "Free"
+        "freeload": "Free",
+        "checkUpdateOnStartup": "Check for updates on startup"
     },
     "zh-Hans": {
         "title": "AICoder",
@@ -276,7 +277,8 @@ const translations: any = {
         "useDefaultProxy": "使用默认代理设置",
         "proxyHostPlaceholder": "例如：192.168.1.1 或 proxy.company.com",
         "proxyPortPlaceholder": "例如：8080",
-        "freeload": "正白嫖"
+        "freeload": "正白嫖",
+        "checkUpdateOnStartup": "启动时检查更新"
     },
     "zh-Hant": {
         "title": "AICoder",
@@ -395,7 +397,8 @@ const translations: any = {
         "useDefaultProxy": "使用預設代理設置",
         "proxyHostPlaceholder": "例如：192.168.1.1 或 proxy.company.com",
         "proxyPortPlaceholder": "例如：8080",
-        "freeload": "正白嫖"
+        "freeload": "正白嫖",
+        "checkUpdateOnStartup": "啟動時檢查更新"
     }
 };
 
@@ -505,7 +508,7 @@ const ToolConfiguration = ({
                                 position: 'absolute',
                                 top: '-8px',
                                 right: '0px',
-                                backgroundColor: '#10b981',
+                                backgroundColor: '#60a5fa',
                                 color: 'white',
                                 fontSize: '10px',
                                 padding: '1px 5px',
@@ -809,8 +812,31 @@ function App() {
                 setLang(cfg.language);
                 SetLanguage(cfg.language);
             }
-            if (cfg && !cfg.hide_startup_popup) {
-                setShowStartupPopup(true);
+
+            // Check for updates on startup if enabled
+            if (cfg && cfg.check_update_on_startup !== false) {
+                CheckUpdate(APP_VERSION).then(res => {
+                    if (res && res.has_update) {
+                        setUpdateResult(res);
+                        setShowUpdateModal(true);
+                    } else {
+                        // No update available, show welcome page if needed
+                        if (cfg && !cfg.hide_startup_popup) {
+                            setShowStartupPopup(true);
+                        }
+                    }
+                }).catch(err => {
+                    console.error("Startup update check failed:", err);
+                    // On error, still show welcome page if needed
+                    if (cfg && !cfg.hide_startup_popup) {
+                        setShowStartupPopup(true);
+                    }
+                });
+            } else {
+                // Update check disabled, show welcome page if needed
+                if (cfg && !cfg.hide_startup_popup) {
+                    setShowStartupPopup(true);
+                }
             }
             if (cfg && cfg.current_project) {
                 setSelectedProjectForLaunch(cfg.current_project);
@@ -880,28 +906,36 @@ function App() {
             // Add opencode check and installation if missing
             const opencodeStatus = statuses?.find((s: any) => s.name === "opencode");
             if (opencodeStatus && !opencodeStatus.installed) {
-                setEnvLogs(prev => [...prev, lang === 'zh-Hans' ? "正在安装 Opencode AI..." : "Installing Opencode AI..."]);
+                setEnvLogs(prev => [...prev, lang === 'zh-Hans' ? "正在安装 Opencode AI..." : 
+                                         lang === 'zh-Hant' ? "正在安裝 Opencode AI..." :
+                                         "Installing Opencode AI..."]);
                 await InstallTool("opencode");
             }
 
             // Add codebuddy check and installation if missing
             const codebuddyStatus = statuses?.find((s: any) => s.name === "codebuddy");
             if (codebuddyStatus && !codebuddyStatus.installed) {
-                setEnvLogs(prev => [...prev, lang === 'zh-Hans' ? "正在安装 CodeBuddy AI..." : "Installing CodeBuddy AI..."]);
+                setEnvLogs(prev => [...prev, lang === 'zh-Hans' ? "正在安装 CodeBuddy AI..." : 
+                                         lang === 'zh-Hant' ? "正在安裝 CodeBuddy AI..." :
+                                         "Installing CodeBuddy AI..."]);
                 await InstallTool("codebuddy");
             }
 
             // Add qoder check and installation if missing
             const qoderStatus = statuses?.find((s: any) => s.name === "qoder");
             if (qoderStatus && !qoderStatus.installed) {
-                setEnvLogs(prev => [...prev, lang === 'zh-Hans' ? "正在安装 Qoder CLI..." : "Installing Qoder CLI..."]);
+                setEnvLogs(prev => [...prev, lang === 'zh-Hans' ? "正在安装 Qoder CLI..." : 
+                                         lang === 'zh-Hant' ? "正在安裝 Qoder CLI..." :
+                                         "Installing Qoder CLI..."]);
                 await InstallTool("qoder");
             }
 
             // Add iflow check and installation if missing
             const iflowStatus = statuses?.find((s: any) => s.name === "iflow");
             if (iflowStatus && !iflowStatus.installed) {
-                setEnvLogs(prev => [...prev, lang === 'zh-Hans' ? "正在安装 iFlow CLI..." : "Installing iFlow CLI..."]);
+                setEnvLogs(prev => [...prev, lang === 'zh-Hans' ? "正在安装 iFlow CLI..." : 
+                                         lang === 'zh-Hant' ? "正在安裝 iFlow CLI..." :
+                                         "Installing iFlow CLI..."]);
                 await InstallTool("iflow");
             }
 
@@ -2066,9 +2100,30 @@ ${instruction}`;
                                     <span style={{fontSize: '0.8rem', color: '#374151'}}>{t("showWelcomePage")}</span>
                                 </label>
                                 <p style={{fontSize: '0.75rem', color: '#64748b', marginLeft: '24px', marginTop: '4px'}}>
-                                    {lang === 'zh-Hans' ? '开启后，程序启动时将显示新手教学和快速入门链接' : 
-                                     lang === 'zh-Hant' ? '開啟後，程序啟動時將顯示新手教學和快速入門鏈接' : 
+                                    {lang === 'zh-Hans' ? '开启后，程序启动时将显示新手教学和快速入门链接' :
+                                     lang === 'zh-Hant' ? '開啟後，程序啟動時將顯示新手教學和快速入門鏈接' :
                                      'When enabled, a welcome popup with tutorial links will be shown at startup.'}
+                                </p>
+
+                                <label style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '12px'}}>
+                                    <input
+                                        type="checkbox"
+                                        checked={config?.check_update_on_startup !== false}
+                                        onChange={(e) => {
+                                            if (config) {
+                                                const newConfig = new main.AppConfig({...config, check_update_on_startup: e.target.checked});
+                                                setConfig(newConfig);
+                                                SaveConfig(newConfig);
+                                            }
+                                        }}
+                                        style={{width: '16px', height: '16px'}}
+                                    />
+                                    <span style={{fontSize: '0.8rem', color: '#374151'}}>{t("checkUpdateOnStartup")}</span>
+                                </label>
+                                <p style={{fontSize: '0.75rem', color: '#64748b', marginLeft: '24px', marginTop: '4px'}}>
+                                    {lang === 'zh-Hans' ? '开启后，程序启动时将自动检查是否有新版本可用' :
+                                     lang === 'zh-Hant' ? '開啟後，程序啟動時將自動檢查是否有新版本可用' :
+                                     'When enabled, the application will automatically check for updates at startup.'}
                                 </p>
                             </div>
                         </div>
@@ -2577,7 +2632,13 @@ ${instruction}`;
                             </div>
                         )}
                         <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px'}}>
-                            <button className="btn-primary" onClick={() => setShowUpdateModal(false)}>{t("close")}</button>
+                            <button className="btn-primary" onClick={() => {
+                                setShowUpdateModal(false);
+                                // After closing update modal, show welcome page if configured
+                                if (config && !config.hide_startup_popup) {
+                                    setShowStartupPopup(true);
+                                }
+                            }}>{t("close")}</button>
                         </div>
                     </div>
                 </div>

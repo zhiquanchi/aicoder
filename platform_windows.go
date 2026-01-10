@@ -331,7 +331,7 @@ func (a *App) downloadFile(filepath string, url string) error {
 			downloaded += int64(n)
 			if size > 0 && time.Since(lastReport) > 500*time.Millisecond {
 				percent := float64(downloaded) / float64(size) * 100
-				a.log(fmt.Sprintf("Downloading Node.js (%.1f%%): %d/%d bytes", percent, downloaded, size))
+				a.log(a.tr("Downloading Node.js (%.1f%%): %d/%d bytes", percent, downloaded, size))
 				lastReport = time.Now()
 			}
 		}
