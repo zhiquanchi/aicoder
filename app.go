@@ -2347,6 +2347,27 @@ func (a *App) DownloadUpdate(url string, fileName string) (string, error) {
 		return "", fmt.Errorf("bad status: %s", resp.Status)
 	}
 
+	// Validation Logic
+	// 1. Check Content-Type
+	contentType := resp.Header.Get("Content-Type")
+	a.log(fmt.Sprintf("DownloadUpdate: Content-Type: %s", contentType))
+	if !strings.Contains(strings.ToLower(contentType), "application/octet-stream") && 
+	   !strings.Contains(strings.ToLower(contentType), "application/x-msdownload") &&
+	   !strings.Contains(strings.ToLower(contentType), "application/x-dosexec") {
+		// Just a warning for now, as some servers might send weird types
+		a.log(fmt.Sprintf("Warning: Unexpected Content-Type: %s", contentType))
+	}
+
+	// 2. Check File Size (> 5MB)
+	if resp.ContentLength < 5*1024*1024 {
+		return "", fmt.Errorf("file too small (%d bytes), possibly an error page", resp.ContentLength)
+	}
+
+	// 3. Check Extension
+	if !strings.HasSuffix(strings.ToLower(fileName), ".exe") {
+		return "", fmt.Errorf("invalid file extension: %s (expected .exe)", fileName)
+	}
+
 	size := resp.ContentLength
 	out, err := os.Create(destPath)
 	if err != nil {
