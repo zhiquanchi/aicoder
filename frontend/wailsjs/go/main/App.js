@@ -102,6 +102,10 @@ export function ShowMessage(arg1, arg2) {
   return window['go']['main']['App']['ShowMessage'](arg1, arg2);
 }
 
+export function UpdateTool(arg1) {
+  return window['go']['main']['App']['UpdateTool'](arg1);
+}
+
 export function WindowHide() {
   return window['go']['main']['App']['WindowHide']();
 }

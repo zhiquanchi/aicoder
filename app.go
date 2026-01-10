@@ -2554,7 +2554,7 @@ func (a *App) detectCondaEnvironments() []PythonEnvironment {
 			return
 		}
 		if _, exists := envMap[name]; !exists {
-			a.log(fmt.Sprintf("Found conda environment: %s at %s", name, path))
+			a.log(a.tr("Found conda environment: %s at %s", name, path))
 			envMap[name] = PythonEnvironment{
 				Name: name,
 				Path: path,
@@ -2566,7 +2566,7 @@ func (a *App) detectCondaEnvironments() []PythonEnvironment {
 	// 1. Try 'conda env list'
 	condaCmd := a.findCondaCommand()
 	if condaCmd != "" {
-		a.log("Using conda command: " + condaCmd)
+		a.log(a.tr("Using conda command: ") + condaCmd)
 		
 		var cmd *exec.Cmd
 		if goruntime.GOOS == "windows" {
@@ -2629,7 +2629,7 @@ func (a *App) detectCondaEnvironments() []PythonEnvironment {
 				addEnv(name, path)
 			}
 		} else {
-			a.log("Failed to list conda environments: " + err.Error())
+			a.log(a.tr("Failed to list conda environments: ") + err.Error())
 		}
 	}
 
@@ -2640,12 +2640,12 @@ func (a *App) detectCondaEnvironments() []PythonEnvironment {
 	condaRoot := a.getCondaRoot()
 	if condaRoot != "" {
 		roots = append(roots, filepath.Join(condaRoot, "envs"))
-		// Add root itself as 'base' if not present
+		// Also add root environment (base)
 		addEnv("base", condaRoot)
 	}
-	
+
 	// User .conda envs
-	home := a.GetUserHomeDir()
+	home, _ := os.UserHomeDir()
 	roots = append(roots, filepath.Join(home, ".conda", "envs"))
 
 	for _, root := range roots {
@@ -2653,9 +2653,7 @@ func (a *App) detectCondaEnvironments() []PythonEnvironment {
 		if err == nil {
 			for _, entry := range entries {
 				if entry.IsDir() {
-					name := entry.Name()
-					path := filepath.Join(root, name)
-					addEnv(name, path)
+					addEnv(entry.Name(), filepath.Join(root, entry.Name()))
 				}
 			}
 		}
@@ -2666,7 +2664,7 @@ func (a *App) detectCondaEnvironments() []PythonEnvironment {
 		envs = append(envs, env)
 	}
 
-	a.log(fmt.Sprintf("Total conda environments found: %d", len(envs)))
+	a.log(a.tr("Total conda environments found: %d", len(envs)))
 	return envs
 }
 
@@ -2678,7 +2676,7 @@ func (a *App) findCondaCommand() string {
 	// First check CONDA_EXE environment variable
 	if condaExe := os.Getenv("CONDA_EXE"); condaExe != "" {
 		if _, err := os.Stat(condaExe); err == nil {
-			a.log("Found conda from CONDA_EXE: " + condaExe)
+			a.log(a.tr("Found conda from CONDA_EXE: ") + condaExe)
 			return condaExe
 		}
 	}
@@ -2686,14 +2684,14 @@ func (a *App) findCondaCommand() string {
 	for _, cmd := range condaCmds {
 		// Check if command exists in PATH
 		if path, err := exec.LookPath(cmd); err == nil {
-			a.log("Found conda in PATH: " + path)
+			a.log(a.tr("Found conda in PATH: ") + path)
 			return path
 		}
 	}
 
 	// Try common installation paths
 	commonPaths := a.getCommonCondaPaths()
-	a.log(fmt.Sprintf("Searching for conda in %d common paths...", len(commonPaths)))
+	a.log(a.tr("Searching for conda in %d common paths...", len(commonPaths)))
 
 	for _, basePath := range commonPaths {
 		// Check if the base path exists first
@@ -2704,34 +2702,34 @@ func (a *App) findCondaCommand() string {
 		for _, cmd := range condaCmds {
 			fullPath := filepath.Join(basePath, cmd)
 			if _, err := os.Stat(fullPath); err == nil {
-				a.log("Found conda at: " + fullPath)
+				a.log(a.tr("Found conda at: ") + fullPath)
 				return fullPath
 			}
 
 			// Also check in Scripts subdirectory (Windows)
 			scriptsPath := filepath.Join(basePath, "Scripts", cmd)
 			if _, err := os.Stat(scriptsPath); err == nil {
-				a.log("Found conda at: " + scriptsPath)
+				a.log(a.tr("Found conda at: ") + scriptsPath)
 				return scriptsPath
 			}
 
 			// Check in condabin subdirectory (newer Anaconda installations)
 			condabinPath := filepath.Join(basePath, "condabin", cmd)
 			if _, err := os.Stat(condabinPath); err == nil {
-				a.log("Found conda at: " + condabinPath)
+				a.log(a.tr("Found conda at: ") + condabinPath)
 				return condabinPath
 			}
 
 			// Check in bin subdirectory (Linux/macOS)
 			binPath := filepath.Join(basePath, "bin", cmd)
 			if _, err := os.Stat(binPath); err == nil {
-				a.log("Found conda at: " + binPath)
+				a.log(a.tr("Found conda at: ") + binPath)
 				return binPath
 			}
 		}
 	}
 
-	a.log("Conda not found in any common location")
+	a.log(a.tr("Conda not found in any common location"))
 	return ""
 }
 
@@ -3038,11 +3036,987 @@ func (a *App) PackLog(logContent string) (string, error) {
 
 		
 
-				return cmd.Start()
+						return cmd.Start()
 
 		
 
-			}
+					}
+
+		
+
+				
+
+		
+
+				// Translation logic
+
+		
+
+				var translations = map[string]map[string]string{
+
+		
+
+					"Checking Node.js installation...": {
+
+		
+
+						"zh-Hans": "正在检查 Node.js 安装...",
+
+		
+
+						"zh-Hant": "正在檢查 Node.js 安裝...",
+
+		
+
+					},
+
+		
+
+					"Node.js not found. Downloading and installing...": {
+
+		
+
+						"zh-Hans": "未找到 Node.js。正在下载并安装...",
+
+		
+
+						"zh-Hant": "未找到 Node.js。正在下載並安裝...",
+
+		
+
+					},
+
+		
+
+					"Node.js not found. Attempting manual installation...": {
+
+		
+
+						"zh-Hans": "未找到 Node.js。尝试手动安装...",
+
+		
+
+						"zh-Hant": "未找到 Node.js。嘗試手動安裝...",
+
+		
+
+					},
+
+		
+
+					"Node.js installed successfully.": {
+
+		
+
+						"zh-Hans": "Node.js 安装成功。",
+
+		
+
+						"zh-Hant": "Node.js 安裝成功。",
+
+		
+
+					},
+
+		
+
+					"Node.js is installed.": {
+
+		
+
+						"zh-Hans": "Node.js 已安装。",
+
+		
+
+						"zh-Hant": "Node.js 已安裝。",
+
+		
+
+					},
+
+		
+
+					"Checking Git installation...": {
+
+		
+
+						"zh-Hans": "正在检查 Git 安装...",
+
+		
+
+						"zh-Hant": "正在檢查 Git 安裝...",
+
+		
+
+					},
+
+		
+
+					"Git found in standard location.": {
+
+		
+
+						"zh-Hans": "在标准位置找到 Git。",
+
+		
+
+						"zh-Hant": "在標準位置找到 Git。",
+
+		
+
+					},
+
+		
+
+					"Git not found. Downloading and installing...": {
+
+		
+
+						"zh-Hans": "未找到 Git。正在下载并安装...",
+
+		
+
+						"zh-Hant": "未找到 Git。正在下載並安裝...",
+
+		
+
+					},
+
+		
+
+					"Git installed successfully.": {
+
+		
+
+						"zh-Hans": "Git 安装成功。",
+
+		
+
+						"zh-Hant": "Git 安裝成功。",
+
+		
+
+					},
+
+		
+
+					"Git is installed.": {
+
+		
+
+						"zh-Hans": "Git 已安装。",
+
+		
+
+						"zh-Hant": "Git 已安裝。",
+
+		
+
+					},
+
+		
+
+					"Environment check complete.": {
+
+		
+
+						"zh-Hans": "环境检查完成。",
+
+		
+
+						"zh-Hant": "環境檢查完成。",
+
+		
+
+					},
+
+		
+
+					"npm not found.": {
+
+		
+
+						"zh-Hans": "未找到 npm。",
+
+		
+
+						"zh-Hant": "未找到 npm。",
+
+		
+
+					},
+
+		
+
+					// Templates
+
+		
+
+					"Checking %s...": {
+
+		
+
+						"zh-Hans": "正在检查 %s...",
+
+		
+
+						"zh-Hant": "正在檢查 %s...",
+
+		
+
+					},
+
+		
+
+					"%s not found. Attempting automatic installation...": {
+
+		
+
+						"zh-Hans": "未找到 %s。尝试自动安装...",
+
+		
+
+						"zh-Hant": "未找到 %s。嘗試自動安裝...",
+
+		
+
+					},
+
+		
+
+					"ERROR: Failed to install %s: %v": {
+
+		
+
+						"zh-Hans": "错误：安装 %s 失败: %v",
+
+		
+
+						"zh-Hant": "錯誤：安裝 %s 失敗: %v",
+
+		
+
+					},
+
+		
+
+					"%s installed successfully.": {
+
+		
+
+						"zh-Hans": "%s 安装成功。",
+
+		
+
+						"zh-Hant": "%s 安裝成功。",
+
+		
+
+					},
+
+		
+
+					"%s found at %s (version: %s).": {
+
+		
+
+						"zh-Hans": "发现 %s 位于 %s (版本: %s)。",
+
+		
+
+						"zh-Hant": "發現 %s 位於 %s (版本: %s)。",
+
+		
+
+					},
+
+		
+
+					"Checking for %s updates...": {
+
+		
+
+						"zh-Hans": "正在检查 %s 更新...",
+
+		
+
+						"zh-Hant": "正在檢查 %s 更新...",
+
+		
+
+					},
+
+		
+
+					"New version available for %s: %s (current: %s). Updating...": {
+
+		
+
+						"zh-Hans": "%s 有新版本可用: %s (当前: %s)。正在更新...",
+
+		
+
+						"zh-Hant": "%s 有新版本可用: %s (當前: %s)。正在更新...",
+
+		
+
+					},
+
+		
+
+					"ERROR: Failed to update %s: %v": {
+
+		
+
+						"zh-Hans": "错误：更新 %s 失败: %v",
+
+		
+
+						"zh-Hant": "錯誤：更新 %s 失敗: %v",
+
+		
+
+					},
+
+		
+
+					"%s updated successfully to %s.": {
+
+		
+
+						"zh-Hans": "%s 成功更新到 %s。",
+
+		
+
+						"zh-Hant": "%s 成功更新到 %s。",
+
+		
+
+					},
+
+		
+
+					"Installing Node.js (this may take a moment, please grant administrator permission if prompted)...": {
+
+		
+
+						"zh-Hans": "正在安装 Node.js (这可能需要一些时间，如果提示请授予管理员权限)...",
+
+		
+
+						"zh-Hant": "正在安裝 Node.js (這可能需要一些時間，如果提示請授予管理員權限)...",
+
+		
+
+					},
+
+		
+
+					"Installing Git (this may take a moment, please grant administrator permission if prompted)...": {
+
+		
+
+						"zh-Hans": "正在安装 Git (这可能需要一些时间，如果提示请授予管理员权限)...",
+
+		
+
+						"zh-Hant": "正在安裝 Git (這可能需要一些時間，如果提示請授予管理員權限)...",
+
+		
+
+					},
+
+		
+
+				    "Downloading Node.js %s for %s...": {
+
+		
+
+				        "zh-Hans": "正在下载 Node.js %s (%s)...",
+
+		
+
+				        "zh-Hant": "正在下載 Node.js %s (%s)...",
+
+		
+
+				    },
+
+		
+
+				    "Downloading Node.js v%s from %s...": {
+
+		
+
+				        "zh-Hans": "正在从 %s 下载 Node.js v%s...",
+
+		
+
+				        "zh-Hant": "正在從 %s 下載 Node.js v%s...",
+
+		
+
+				    },
+
+		
+
+				    "Downloading Git %s...": {
+
+		
+
+				        "zh-Hans": "正在下载 Git %s...",
+
+		
+
+				        "zh-Hant": "正在下載 Git %s...",
+
+		
+
+				    },
+
+		
+
+				    "Node.js installer is not accessible (Status: %s). Please check your internet connection or mirror availability.": {
+
+		
+
+				        "zh-Hans": "无法访问 Node.js 安装程序 (状态: %s)。请检查您的网络连接或镜像可用性。",
+
+		
+
+				        "zh-Hant": "無法訪問 Node.js 安裝程序 (狀態: %s)。請檢查您的網絡連接或鏡像可用性。",
+
+		
+
+				    },
+
+		
+
+				        "Failed to install Node.js: ": {
+
+		
+
+				            "zh-Hans": "安装 Node.js 失败: ",
+
+		
+
+				            "zh-Hant": "安裝 Node.js 失敗: ",
+
+		
+
+				        },
+
+		
+
+				        "Node.js not found. Checking for Homebrew...": {
+
+		
+
+				            "zh-Hans": "未找到 Node.js。正在检查 Homebrew...",
+
+		
+
+				            "zh-Hant": "未找到 Node.js。正在檢查 Homebrew...",
+
+		
+
+				        },
+
+		
+
+				        "Installing Node.js via Homebrew...": {
+
+		
+
+				            "zh-Hans": "正在通过 Homebrew 安装 Node.js...",
+
+		
+
+				            "zh-Hant": "正在通過 Homebrew 安裝 Node.js...",
+
+		
+
+				        },
+
+		
+
+				        "Homebrew installation failed.": {
+
+		
+
+				            "zh-Hans": "Homebrew 安装失败。",
+
+		
+
+				            "zh-Hant": "Homebrew 安裝失敗。",
+
+		
+
+				        },
+
+		
+
+				        "Node.js installed via Homebrew.": {
+
+		
+
+				            "zh-Hans": "Node.js 已通过 Homebrew 安装。",
+
+		
+
+				            "zh-Hant": "Node.js 已通過 Homebrew 安裝。",
+
+		
+
+				        },
+
+		
+
+				        "Homebrew not found. Attempting manual installation...": {
+
+		
+
+				            "zh-Hans": "未找到 Homebrew。尝试手动安装...",
+
+		
+
+				            "zh-Hant": "未找到 Homebrew。嘗試手動安裝...",
+
+		
+
+				        },
+
+		
+
+				        "Manual installation failed: ": {
+
+		
+
+				            "zh-Hans": "手动安装失败: ",
+
+		
+
+				            "zh-Hant": "手動安裝失敗: ",
+
+		
+
+				        },
+
+		
+
+				        "Node.js manually installed to ": {
+
+		
+
+				            "zh-Hans": "Node.js 已手动安装到 ",
+
+		
+
+				            "zh-Hant": "Node.js 已手動安裝到 ",
+
+		
+
+				        },
+
+		
+
+				        "Verifying Node.js installation...": {
+
+		
+
+				            "zh-Hans": "正在验证 Node.js 安装...",
+
+		
+
+				            "zh-Hant": "正在驗證 Node.js 安裝...",
+
+		
+
+				        },
+
+		
+
+				        "Node.js installation completed but binary not found.": {
+
+		
+
+				            "zh-Hans": "Node.js 安装完成但未找到二进制文件。",
+
+		
+
+				            "zh-Hant": "Node.js 安裝完成但未找到二進制文件。",
+
+		
+
+				        },
+
+		
+
+				            "Node.js found at: ": {
+
+		
+
+				                "zh-Hans": "Node.js 位于: ",
+
+		
+
+				                "zh-Hant": "Node.js 位於: ",
+
+		
+
+				            },
+
+		
+
+				                "Updated PATH: ": {
+
+		
+
+				                    "zh-Hans": "已更新 PATH: ",
+
+		
+
+				                    "zh-Hant": "已更新 PATH: ",
+
+		
+
+				                },
+
+		
+
+				                "Running installation: %s %s": {
+
+		
+
+				                    "zh-Hans": "正在运行安装: %s %s",
+
+		
+
+				                    "zh-Hant": "正在運行安裝: %s %s",
+
+		
+
+				                },
+
+		
+
+				                "Detected npm cache permission issue. Attempting to clear cache...": {
+
+		
+
+				                    "zh-Hans": "检测到 npm 缓存权限问题。正在尝试清理缓存...",
+
+		
+
+				                    "zh-Hant": "檢測到 npm 緩存權限問題。正在嘗試清理緩存...",
+
+		
+
+				                },
+
+		
+
+				                "Retrying installation after cache clean...": {
+
+		
+
+				                    "zh-Hans": "清理缓存后重试安装...",
+
+		
+
+				                    "zh-Hant": "清理緩存後重試安裝...",
+
+		
+
+				                },
+
+		
+
+				                "Running update: %s %s": {
+
+		
+
+				                    "zh-Hans": "正在运行更新: %s %s",
+
+		
+
+				                    "zh-Hant": "正在運行更新: %s %s",
+
+		
+
+				                },
+
+		
+
+				                    "Warning: Failed to create local npm cache dir: %v": {
+
+		
+
+				                        "zh-Hans": "警告: 创建本地 npm 缓存目录失败: %v",
+
+		
+
+				                        "zh-Hant": "警告: 創建本地 npm 緩存目錄失敗: %v",
+
+		
+
+				                    },
+
+		
+
+				                    "Found conda environment: %s at %s": {
+
+		
+
+				                        "zh-Hans": "发现 conda 环境: %s 位于 %s",
+
+		
+
+				                        "zh-Hant": "發現 conda 環境: %s 位於 %s",
+
+		
+
+				                    },
+
+		
+
+				                    "Using conda command: ": {
+
+		
+
+				                        "zh-Hans": "使用 conda 命令: ",
+
+		
+
+				                        "zh-Hant": "使用 conda 命令: ",
+
+		
+
+				                    },
+
+		
+
+				                    "Failed to list conda environments: ": {
+
+		
+
+				                        "zh-Hans": "列出 conda 环境失败: ",
+
+		
+
+				                        "zh-Hant": "列出 conda 環境失敗: ",
+
+		
+
+				                    },
+
+		
+
+				                    "Total conda environments found: %d": {
+
+		
+
+				                        "zh-Hans": "共发现 %d 个 conda 环境",
+
+		
+
+				                        "zh-Hant": "共發現 %d 個 conda 環境",
+
+		
+
+				                    },
+
+		
+
+				                    "Found conda from CONDA_EXE: ": {
+
+		
+
+				                        "zh-Hans": "从 CONDA_EXE 发现 conda: ",
+
+		
+
+				                        "zh-Hant": "從 CONDA_EXE 發現 conda: ",
+
+		
+
+				                    },
+
+		
+
+				                    "Found conda in PATH: ": {
+
+		
+
+				                        "zh-Hans": "在 PATH 中发现 conda: ",
+
+		
+
+				                        "zh-Hant": "在 PATH 中發現 conda: ",
+
+		
+
+				                    },
+
+		
+
+				                    "Searching for conda in %d common paths...": {
+
+		
+
+				                        "zh-Hans": "正在 %d 个常用路径中搜索 conda...",
+
+		
+
+				                        "zh-Hant": "正在 %d 個常用路徑中搜索 conda...",
+
+		
+
+				                    },
+
+		
+
+				                    "Found conda at: ": {
+
+		
+
+				                        "zh-Hans": "发现 conda 位于: ",
+
+		
+
+				                        "zh-Hant": "發現 conda 位於: ",
+
+		
+
+				                    },
+
+		
+
+				                    "Conda not found in any common location": {
+
+		
+
+				                        "zh-Hans": "在任何常用位置都未找到 Conda",
+
+		
+
+				                        "zh-Hant": "在任何常用位置都未找到 Conda",
+
+		
+
+				                    },
+
+		
+
+				                }
+
+		
+
+				
+
+		
+
+				func (a *App) tr(key string, args ...interface{}) string {
+
+		
+
+					lang := strings.ToLower(a.CurrentLanguage)
+
+		
+
+					if strings.HasPrefix(lang, "zh-hans") || strings.HasPrefix(lang, "zh-cn") {
+
+		
+
+						lang = "zh-Hans"
+
+		
+
+					} else if strings.HasPrefix(lang, "zh-hant") || strings.HasPrefix(lang, "zh-tw") || strings.HasPrefix(lang, "zh-hk") {
+
+		
+
+						lang = "zh-Hant"
+
+		
+
+					} else {
+
+		
+
+						lang = "en"
+
+		
+
+					}
+
+		
+
+				
+
+		
+
+					var format string
+
+		
+
+					if dict, ok := translations[key]; ok {
+
+		
+
+						if val, ok := dict[lang]; ok {
+
+		
+
+							format = val
+
+		
+
+						}
+
+		
+
+					}
+
+		
+
+				
+
+		
+
+					if format == "" {
+
+		
+
+						format = key
+
+		
+
+					}
+
+		
+
+				
+
+		
+
+					if len(args) > 0 {
+
+		
+
+						return fmt.Sprintf(format, args...)
+
+		
+
+					}
+
+		
+
+					return format
+
+		
+
+				}
 
 		
 

@@ -48,7 +48,7 @@ func (a *App) CheckEnvironment() {
 		if pathChanged {
 			envPath = strings.Join(newPathParts, ":")
 			os.Setenv("PATH", envPath)
-			a.log("Updated PATH: " + envPath)
+			a.log(a.tr("Updated PATH: ") + envPath)
 		}
 
 		// 2. Search for Node.js
@@ -65,7 +65,7 @@ func (a *App) CheckEnvironment() {
 
 		// 3. If still not found, try to install
 		if nodePath == "" {
-			a.log("Node.js not found. Checking for Homebrew...")
+			a.log(a.tr("Node.js not found. Checking for Homebrew..."))
 			
 			brewExec, _ := exec.LookPath("brew")
 			if brewExec == "" {
@@ -78,24 +78,24 @@ func (a *App) CheckEnvironment() {
 			}
 
 			if brewExec != "" {
-				a.log("Installing Node.js via Homebrew...")
+				a.log(a.tr("Installing Node.js via Homebrew..."))
 				cmd := exec.Command(brewExec, "install", "node")
 				if err := cmd.Run(); err != nil {
-					a.log("Homebrew installation failed.")
+					a.log(a.tr("Homebrew installation failed."))
 				} else {
-					a.log("Node.js installed via Homebrew.")
+					a.log(a.tr("Node.js installed via Homebrew."))
 				}
 			} else {
-				a.log("Homebrew not found. Attempting manual installation...")
+				a.log(a.tr("Homebrew not found. Attempting manual installation..."))
 				if err := a.installNodeJSManually(localNodeDir); err != nil {
-					a.log("Manual installation failed: " + err.Error())
+					a.log(a.tr("Manual installation failed: ") + err.Error())
 					wails_runtime.EventsEmit(a.ctx, "env-check-done")
 					return
 				}
-				a.log("Node.js manually installed to " + localNodeDir)
+				a.log(a.tr("Node.js manually installed to ") + localNodeDir)
 			}
 			
-			a.log("Verifying Node.js installation...")
+			a.log(a.tr("Verifying Node.js installation..."))
 			
 			// Re-check for node
 			nodePath, err = exec.LookPath("node")
@@ -108,13 +108,13 @@ func (a *App) CheckEnvironment() {
 			}
 			
 			if nodePath == "" {
-				a.log("Node.js installation completed but binary not found.")
+				a.log(a.tr("Node.js installation completed but binary not found."))
 				wails_runtime.EventsEmit(a.ctx, "env-check-done")
 				return
 			}
 		}
 
-		a.log("Node.js found at: " + nodePath)
+		a.log(a.tr("Node.js found at: ") + nodePath)
 
 		// 4. Search for npm
 		npmExec, err := exec.LookPath("npm")
@@ -126,7 +126,7 @@ func (a *App) CheckEnvironment() {
 		}
 		
 		if npmExec == "" {
-			a.log("npm not found.")
+			a.log(a.tr("npm not found."))
 			wails_runtime.EventsEmit(a.ctx, "env-check-done")
 			return
 		}
@@ -136,36 +136,36 @@ func (a *App) CheckEnvironment() {
 		tools := []string{"claude", "gemini", "codex", "opencode", "codebuddy", "qoder"}
 		
 		for _, tool := range tools {
-			a.log(fmt.Sprintf("Checking %s...", tool))
+			a.log(a.tr("Checking %s...", tool))
 			status := tm.GetToolStatus(tool)
 			
 			if !status.Installed {
-				a.log(fmt.Sprintf("%s not found. Attempting automatic installation...", tool))
+				a.log(a.tr("%s not found. Attempting automatic installation...", tool))
 				if err := tm.InstallTool(tool); err != nil {
-					a.log(fmt.Sprintf("ERROR: Failed to install %s: %v", tool, err))
+					a.log(a.tr("ERROR: Failed to install %s: %v", tool, err))
 					// We continue to other tools even if one fails, allowing manual intervention later
 				} else {
-					a.log(fmt.Sprintf("%s installed successfully.", tool))
+					a.log(a.tr("%s installed successfully.", tool))
 				}
 			} else {
-				a.log(fmt.Sprintf("%s found at %s (version: %s).", tool, status.Path, status.Version))
+				a.log(a.tr("%s found at %s (version: %s).", tool, status.Path, status.Version))
 				// Check for updates for all tools
 				if tool == "codex" || tool == "opencode" || tool == "codebuddy" || tool == "qoder" || tool == "iflow" || tool == "gemini" || tool == "claude" {
-					a.log(fmt.Sprintf("Checking for %s updates...", tool))
+					a.log(a.tr("Checking for %s updates...", tool))
 					latest, err := a.getLatestNpmVersion(npmExec, tm.GetPackageName(tool))
 					if err == nil && latest != "" && latest != status.Version {
-						a.log(fmt.Sprintf("New version available for %s: %s (current: %s). Updating...", tool, latest, status.Version))
+						a.log(a.tr("New version available for %s: %s (current: %s). Updating...", tool, latest, status.Version))
 						if err := tm.InstallTool(tool); err != nil {
-							a.log(fmt.Sprintf("ERROR: Failed to update %s: %v", tool, err))
+							a.log(a.tr("ERROR: Failed to update %s: %v", tool, err))
 						} else {
-							a.log(fmt.Sprintf("%s updated successfully to %s.", tool, latest))
+							a.log(a.tr("%s updated successfully to %s.", tool, latest))
 						}
 					}
 				}
 			}
 		}
 
-		a.log("Environment check complete.")
+		a.log(a.tr("Environment check complete."))
 		wails_runtime.EventsEmit(a.ctx, "env-check-done")
 	}()
 }

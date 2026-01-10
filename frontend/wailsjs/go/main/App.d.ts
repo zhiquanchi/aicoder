@@ -52,4 +52,6 @@ export function ShowItemInFolder(arg1:string):Promise<void>;
 
 export function ShowMessage(arg1:string,arg2:string):Promise<void>;
 
+export function UpdateTool(arg1:string):Promise<void>;
+
 export function WindowHide():Promise<void>;

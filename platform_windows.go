@@ -73,27 +73,27 @@ func (a *App) updatePathForNode() {
 
 func (a *App) CheckEnvironment() {
 	go func() {
-		a.log("Checking Node.js installation...")
+		a.log(a.tr("Checking Node.js installation..."))
 
 		// Check for node
 		nodeCmd := exec.Command("node", "--version")
 		nodeCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 		if err := nodeCmd.Run(); err != nil {
-			a.log("Node.js not found. Downloading and installing...")
+			a.log(a.tr("Node.js not found. Downloading and installing..."))
 			if err := a.installNodeJS(); err != nil {
-				a.log("Failed to install Node.js: " + err.Error())
+				a.log(a.tr("Failed to install Node.js: ") + err.Error())
 				return
 			}
-			a.log("Node.js installed successfully.")
+			a.log(a.tr("Node.js installed successfully."))
 		} else {
-			a.log("Node.js is installed.")
+			a.log(a.tr("Node.js is installed."))
 		}
 
 		// Update path for the current process anyway to ensure npm is found
 		a.updatePathForNode()
 
 		// Check for Git
-		a.log("Checking Git installation...")
+		a.log(a.tr("Checking Git installation..."))
 		if _, err := exec.LookPath("git"); err != nil {
 			// Check common locations before giving up
 			gitFound := false
@@ -103,18 +103,18 @@ func (a *App) CheckEnvironment() {
 			
 			if gitFound {
 				a.updatePathForGit()
-				a.log("Git found in standard location.")
+				a.log(a.tr("Git found in standard location."))
 			} else {
-				a.log("Git not found. Downloading and installing...")
+				a.log(a.tr("Git not found. Downloading and installing..."))
 				if err := a.installGitBash(); err != nil {
 					a.log("Failed to install Git: " + err.Error())
 				} else {
-					a.log("Git installed successfully.")
+					a.log(a.tr("Git installed successfully."))
 					a.updatePathForGit()
 				}
 			}
 		} else {
-			a.log("Git is installed.")
+			a.log(a.tr("Git is installed."))
 		}
 
 		// Ensure node.exe is in local tool path for npm wrappers
@@ -136,37 +136,37 @@ func (a *App) CheckEnvironment() {
 		tools := []string{"claude", "gemini", "codex", "opencode", "codebuddy", "qoder", "iflow"}
 		
 		for _, tool := range tools {
-			a.log(fmt.Sprintf("Checking %s...", tool))
+			a.log(a.tr("Checking %s...", tool))
 			status := tm.GetToolStatus(tool)
 			
 			if !status.Installed {
-				a.log(fmt.Sprintf("%s not found. Attempting automatic installation...", tool))
+				a.log(a.tr("%s not found. Attempting automatic installation...", tool))
 				if err := tm.InstallTool(tool); err != nil {
-					a.log(fmt.Sprintf("ERROR: Failed to install %s: %v", tool, err))
+					a.log(a.tr("ERROR: Failed to install %s: %v", tool, err))
 					// We continue to other tools even if one fails, allowing manual intervention later
 				} else {
-					a.log(fmt.Sprintf("%s installed successfully.", tool))
+					a.log(a.tr("%s installed successfully.", tool))
 					a.updatePathForNode() // Refresh path after install
 				}
 			} else {
-				a.log(fmt.Sprintf("%s found at %s (version: %s).", tool, status.Path, status.Version))
+				a.log(a.tr("%s found at %s (version: %s).", tool, status.Path, status.Version))
 				// Check for updates for all tools
 				if tool == "codex" || tool == "opencode" || tool == "codebuddy" || tool == "qoder" || tool == "iflow" || tool == "gemini" || tool == "claude" {
-					a.log(fmt.Sprintf("Checking for %s updates...", tool))
+					a.log(a.tr("Checking for %s updates...", tool))
 					latest, err := a.getLatestNpmVersion(npmExec, tm.GetPackageName(tool))
 					if err == nil && latest != "" && latest != status.Version {
-						a.log(fmt.Sprintf("New version available for %s: %s (current: %s). Updating...", tool, latest, status.Version))
+						a.log(a.tr("New version available for %s: %s (current: %s). Updating...", tool, latest, status.Version))
 						if err := tm.InstallTool(tool); err != nil {
-							a.log(fmt.Sprintf("ERROR: Failed to update %s: %v", tool, err))
+							a.log(a.tr("ERROR: Failed to update %s: %v", tool, err))
 						} else {
-							a.log(fmt.Sprintf("%s updated successfully to %s.", tool, latest))
+							a.log(a.tr("%s updated successfully to %s.", tool, latest))
 						}
 					}
 				}
 			}
 		}
 
-		a.log("Environment check complete.")
+		a.log(a.tr("Environment check complete."))
 		runtime.EventsEmit(a.ctx, "env-check-done")
 	}()
 }
@@ -188,7 +188,7 @@ func (a *App) installNodeJS() error {
 		downloadURL = fmt.Sprintf("https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/v%s/%s", nodeVersion, fileName)
 	}
 
-	a.log(fmt.Sprintf("Downloading Node.js %s for %s...", nodeVersion, nodeArch))
+	a.log(a.tr("Downloading Node.js %s for %s...", nodeVersion, nodeArch))
 
 	// Pre-check if the file exists and is accessible
 	client := &http.Client{Timeout: 10 * time.Second}
@@ -200,7 +200,7 @@ func (a *App) installNodeJS() error {
 		if headResp != nil {
 			status = headResp.Status
 		}
-		return fmt.Errorf("Node.js installer is not accessible (Status: %s). Please check your internet connection or mirror availability.", status)
+		return fmt.Errorf(a.tr("Node.js installer is not accessible (Status: %s). Please check your internet connection or mirror availability.", status))
 	}
 	headResp.Body.Close()
 
@@ -212,7 +212,7 @@ func (a *App) installNodeJS() error {
 	}
 	defer os.Remove(msiPath)
 
-	a.log("Installing Node.js (this may take a moment, please grant administrator permission if prompted)...")
+	a.log(a.tr("Installing Node.js (this may take a moment, please grant administrator permission if prompted)..."))
 	// Use /passive for basic UI or /qn for completely silent.
 	// Adding ALLUSERS=1 to ensure it's in the standard path.
 	cmd := exec.Command("msiexec", "/i", msiPath, "/passive", "ALLUSERS=1")
@@ -263,7 +263,7 @@ func (a *App) installGitBash() error {
 		downloadURL = fmt.Sprintf("https://npmmirror.com/mirrors/git-for-windows/%s/%s", fullVersion, fileName)
 	}
 	
-	a.log(fmt.Sprintf("Downloading Git %s...", gitVersion))
+	a.log(a.tr("Downloading Git %s...", gitVersion))
 
 	tempDir := os.TempDir()
 	exePath := filepath.Join(tempDir, fileName)
@@ -273,7 +273,7 @@ func (a *App) installGitBash() error {
 	}
 	defer os.Remove(exePath)
 
-	a.log("Installing Git (this may take a moment, please grant administrator permission if prompted)...")
+	a.log(a.tr("Installing Git (this may take a moment, please grant administrator permission if prompted)..."))
 	// Silent installation
 	cmd := exec.Command(exePath, "/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS")
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}

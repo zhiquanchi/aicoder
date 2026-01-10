@@ -241,14 +241,14 @@ func (tm *ToolManager) InstallTool(name string) error {
 	}
 	cmd.Env = env
 
-	tm.app.log(fmt.Sprintf("Running installation: %s %s", cmd.Path, strings.Join(cmd.Args[1:], " ")))
+	tm.app.log(tm.app.tr("Running installation: %s %s", cmd.Path, strings.Join(cmd.Args[1:], " ")))
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		outputStr := string(out)
 		// Check for cache permission issues
 		if strings.Contains(outputStr, "EACCES") || strings.Contains(outputStr, "EEXIST") {
-			tm.app.log("Detected npm cache permission issue. Attempting to clear cache...")
+			tm.app.log(tm.app.tr("Detected npm cache permission issue. Attempting to clear cache..."))
 			
 			// Try to clean cache
 			cleanArgs := []string{"cache", "clean", "--force", "--cache", localCacheDir}
@@ -260,7 +260,7 @@ func (tm *ToolManager) InstallTool(name string) error {
 			cleanCmd.Env = env
 			cleanCmd.CombinedOutput() // Ignore error on clean
 			
-			tm.app.log("Retrying installation after cache clean...")
+			tm.app.log(tm.app.tr("Retrying installation after cache clean..."))
 			// Retry installation
 			cmd = createNpmInstallCmd(npmPath, args)
 			cmd.Env = env
@@ -296,7 +296,7 @@ func (tm *ToolManager) UpdateTool(name string) error {
 	}
 
 	if cmd != nil {
-		tm.app.log(fmt.Sprintf("Running update: %s %s", cmd.Path, strings.Join(cmd.Args[1:], " ")))
+		tm.app.log(tm.app.tr("Running update: %s %s", cmd.Path, strings.Join(cmd.Args[1:], " ")))
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			return fmt.Errorf("failed to update %s: %v\nOutput: %s", name, err, string(out))

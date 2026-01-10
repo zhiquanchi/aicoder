@@ -33,7 +33,7 @@ const subscriptionUrls: {[key: string]: string} = {
 };
 
 
-const APP_VERSION = "2.7.5.2500"
+const APP_VERSION = "3.0.0.3000"
 
 const translations: any = {
     "en": {
@@ -154,7 +154,8 @@ const translations: any = {
         "proxyNotConfigured": "Proxy not configured. Please configure proxy settings first.",
         "useDefaultProxy": "Use default proxy settings",
         "proxyHostPlaceholder": "e.g., 192.168.1.1 or proxy.company.com",
-        "proxyPortPlaceholder": "e.g., 8080"
+        "proxyPortPlaceholder": "e.g., 8080",
+        "freeload": "Free"
     },
     "zh-Hans": {
         "title": "AICoder",
@@ -274,7 +275,8 @@ const translations: any = {
         "proxyNotConfigured": "代理未配置。请先配置代理设置。",
         "useDefaultProxy": "使用默认代理设置",
         "proxyHostPlaceholder": "例如：192.168.1.1 或 proxy.company.com",
-        "proxyPortPlaceholder": "例如：8080"
+        "proxyPortPlaceholder": "例如：8080",
+        "freeload": "正白嫖"
     },
     "zh-Hant": {
         "title": "AICoder",
@@ -291,7 +293,6 @@ const translations: any = {
         "yoloMode": "Yolo 模式",
         "dangerouslySkip": "(危險：跳過權限檢查)",
         "launchBtn": "啟動工具",
-        "activeModel": "服務商選擇",
         "modelSettings": "服務商設定",
         "providerName": "服務商名稱",
         "modelName": "模型名稱/ID",
@@ -393,7 +394,8 @@ const translations: any = {
         "proxyNotConfigured": "代理未配置。請先配置代理設置。",
         "useDefaultProxy": "使用預設代理設置",
         "proxyHostPlaceholder": "例如：192.168.1.1 或 proxy.company.com",
-        "proxyPortPlaceholder": "例如：8080"
+        "proxyPortPlaceholder": "例如：8080",
+        "freeload": "正白嫖"
     }
 };
 
@@ -420,7 +422,7 @@ const ToolConfiguration = ({
         }}>
             <div className="model-switcher" style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: '12px',
                 width: '100%',
                 paddingTop: '8px',
@@ -432,7 +434,7 @@ const ToolConfiguration = ({
                         className={`model-btn ${toolCfg.current_model === model.model_name ? 'selected' : ''}`}
                         onClick={() => handleModelSwitch(model.model_name)}
                         style={{
-                            minWidth: '100px',
+                            minWidth: '94px',
                             padding: '4px 4px',
                             fontSize: '0.8rem',
                             borderBottom: (model.api_key && model.api_key.trim() !== "") ? '3px solid #60a5fa' : '1px solid var(--border-color)',
@@ -496,6 +498,24 @@ const ToolConfiguration = ({
                                 boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
                             }}>
                                 {t("premium")}
+                            </span>
+                        )}
+                        {model.model_name.toLowerCase().includes("xiaomi") && (
+                            <span style={{
+                                position: 'absolute',
+                                top: '-8px',
+                                right: '0px',
+                                backgroundColor: '#10b981',
+                                color: 'white',
+                                fontSize: '10px',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                fontWeight: 'bold',
+                                zIndex: 10,
+                                transform: 'scale(0.85)',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                            }}>
+                                {t("freeload")}
                             </span>
                         )}
                         {model.is_custom ? (
@@ -765,7 +785,7 @@ function App() {
             }
         };
         const doneHandler = () => {
-            ResizeWindow(700, 440);
+            ResizeWindow(657, 440);
             setIsLoading(false);
         };
 
@@ -1409,71 +1429,123 @@ ${instruction}`;
                 '--wails-draggable': 'drag'
             } as any}></div>
 
-            <div className="sidebar" style={{'--wails-draggable': 'no-drag'} as any}>
-                <div className="sidebar-header">
-                    <img src={appIcon} alt="Logo" className="sidebar-logo" />
-                    <span className="sidebar-title" style={{
-                        background: 'linear-gradient(to right, #60a5fa, #a855f7, #ec4899)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        fontWeight: 'bold',
-                        display: 'inline-block'
-                    }}>AICoder</span>
-                </div>
-                <div className={`sidebar-item ${navTab === 'message' ? 'active' : ''}`} onClick={() => switchTool('message')}>
-                    <span className="sidebar-icon">💬</span> <span>{t("message")}</span>
-                </div>
-                <div className={`sidebar-item ${navTab === 'tutorial' ? 'active' : ''}`} onClick={() => switchTool('tutorial')}>
-                    <span className="sidebar-icon">📚</span> <span>{t("tutorial")}</span>
-                </div>
-                <div style={{height: '10px'}}></div>
-                
-                <div style={{backgroundColor: 'rgba(96, 165, 250, 0.05)', borderRadius: '8px', margin: '0 8px', overflow: 'hidden'}}>
-                    <div className={`sidebar-item ${navTab === 'claude' ? 'active' : ''}`} onClick={() => switchTool('claude')}>
-                        <span className="sidebar-icon">🤖</span> <span>Claude Code</span>
+            <div className="sidebar" style={{'--wails-draggable': 'no-drag', flexDirection: 'row', padding: 0, width: '180px'} as any}>
+                {/* Left Navigation Strip */}
+                <div style={{
+                    width: '60px', 
+                    borderRight: '1px solid var(--border-color)', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    padding: '10px 0',
+                    backgroundColor: '#f8fafc',
+                    flexShrink: 0
+                }}>
+                    <div className="sidebar-header" style={{padding: '0 0 15px 0', justifyContent: 'center', width: '100%'}}>
+                        <img src={appIcon} alt="Logo" className="sidebar-logo" style={{width: '28px', height: '28px'}} />
                     </div>
-                    {config?.show_gemini !== false && (
-                    <div className={`sidebar-item ${navTab === 'gemini' ? 'active' : ''}`} onClick={() => switchTool('gemini')}>
-                        <span className="sidebar-icon">♊</span> <span>Gemini CLI</span>
+                    
+                    <div 
+                        className={`sidebar-item ${navTab === 'message' ? 'active' : ''}`} 
+                        onClick={() => switchTool('message')}
+                        style={{flexDirection: 'column', padding: '10px 0', width: '100%', gap: '4px', borderLeft: 'none', borderRight: navTab === 'message' ? '3px solid var(--primary-color)' : '3px solid transparent', justifyContent: 'center'}}
+                        title={t("message")}
+                    >
+                        <span className="sidebar-icon" style={{margin: 0, fontSize: '1.2rem'}}>💬</span>
+                        <span style={{fontSize: '0.65rem', lineHeight: 1}}>{t("message")}</span>
                     </div>
-                    )}
-                    {config?.show_codex !== false && (
-                    <div className={`sidebar-item ${navTab === 'codex' ? 'active' : ''}`} onClick={() => switchTool('codex')}>
-                        <span className="sidebar-icon">💻</span> <span>CodeX</span>
+                    <div 
+                        className={`sidebar-item ${navTab === 'tutorial' ? 'active' : ''}`} 
+                        onClick={() => switchTool('tutorial')}
+                        style={{flexDirection: 'column', padding: '10px 0', width: '100%', gap: '4px', borderLeft: 'none', borderRight: navTab === 'tutorial' ? '3px solid var(--primary-color)' : '3px solid transparent', justifyContent: 'center'}}
+                        title={t("tutorial")}
+                    >
+                        <span className="sidebar-icon" style={{margin: 0, fontSize: '1.2rem'}}>📚</span>
+                        <span style={{fontSize: '0.65rem', lineHeight: 1}}>{t("tutorial")}</span>
                     </div>
-                    )}
-                    {config?.show_opencode !== false && (
-                    <div className={`sidebar-item ${navTab === 'opencode' ? 'active' : ''}`} onClick={() => switchTool('opencode')}>
-                        <span className="sidebar-icon">🔳</span> <span>OpenCode</span>
+
+                    <div style={{flex: 1}}></div>
+
+                    <div 
+                        className={`sidebar-item ${navTab === 'settings' ? 'active' : ''}`} 
+                        onClick={() => switchTool('settings')}
+                        style={{flexDirection: 'column', padding: '10px 0', width: '100%', gap: '4px', borderLeft: 'none', borderRight: navTab === 'settings' ? '3px solid var(--primary-color)' : '3px solid transparent', justifyContent: 'center'}}
+                        title={t("settings")}
+                    >
+                        <span className="sidebar-icon" style={{margin: 0, fontSize: '1.2rem'}}>⚙️</span>
+                        <span style={{fontSize: '0.65rem', lineHeight: 1}}>{t("settings")}</span>
                     </div>
-                    )}
-                    {config?.show_codebuddy !== false && (
-                    <div className={`sidebar-item ${navTab === 'codebuddy' ? 'active' : ''}`} onClick={() => switchTool('codebuddy')}>
-                        <span className="sidebar-icon">👨‍💻</span> <span>CodeBuddy</span>
+                    <div 
+                        className={`sidebar-item ${navTab === 'about' ? 'active' : ''}`} 
+                        onClick={() => switchTool('about')}
+                        style={{flexDirection: 'column', padding: '10px 0', width: '100%', gap: '4px', borderLeft: 'none', borderRight: navTab === 'about' ? '3px solid var(--primary-color)' : '3px solid transparent', justifyContent: 'center'}}
+                        title={t("about")}
+                    >
+                        <span className="sidebar-icon" style={{margin: 0, fontSize: '1.2rem'}}>ℹ️</span>
+                        <span style={{fontSize: '0.65rem', lineHeight: 1}}>{t("about")}</span>
                     </div>
-                    )}
-                    {config?.show_iflow !== false && (
-                    <div className={`sidebar-item ${navTab === 'iflow' ? 'active' : ''}`} onClick={() => switchTool('iflow')}>
-                        <span className="sidebar-icon">
-                            <img src="https://img.alicdn.com/imgextra/i1/O1CN01nulwex1q7Eq1TVqUh_!!6000000005448-55-tps-32-32.svg" style={{width: '1em', height: '1em', verticalAlign: 'middle'}} alt="iFlow" />
-                        </span> <span>iFlow CLI</span>
-                    </div>
-                    )}
-                    {config?.show_qoder !== false && (
-                    <div className={`sidebar-item ${navTab === 'qoder' ? 'active' : ''}`} onClick={() => switchTool('qoder')}>
-                        <span className="sidebar-icon">
-                            <img src="https://img.alicdn.com/imgextra/i4/O1CN01LfldL32AI2X3bg2ot_!!6000000008179-55-tps-640-180.svg" style={{width: '1em', height: '1em', verticalAlign: 'middle'}} alt="Qoder" />
-                        </span> <span>Qoder CLI</span>
-                    </div>
-                    )}
                 </div>
 
-                <div style={{height: '40px'}}></div>
-                <div className={`sidebar-item ${navTab === 'settings' ? 'active' : ''}`} onClick={() => switchTool('settings')}>
-                    <span className="sidebar-icon">⚙️</span> <span style={{maxWidth: lang === 'en' ? '110px' : 'none'}}>{t("settings")}</span>
-                </div>
-                <div className={`sidebar-item ${navTab === 'about' ? 'active' : ''}`} onClick={() => switchTool('about')}>
-                    <span className="sidebar-icon">ℹ️</span> <span>{t("about")}</span>
+                {/* Right Tool List */}
+                <div style={{flex: 1, padding: '10px', overflowY: 'auto', backgroundColor: '#fff', display: 'flex', flexDirection: 'column'}}>
+                    <div style={{marginBottom: '15px', fontSize: '1.1rem', fontWeight: 'bold', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                        <span style={{
+                            background: 'linear-gradient(to right, #60a5fa, #a855f7, #ec4899)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            display: 'inline-block'
+                        }}>AICoder</span>
+                    </div>
+                    
+                    <div className="tool-grid" style={{display: 'grid', gridTemplateColumns: '1fr', gap: '4px'}}>
+                        <div className={`sidebar-item ${navTab === 'claude' ? 'active' : ''}`} onClick={() => switchTool('claude')}>
+                            <span className="sidebar-icon">
+                                <img src={claudecodeIcon} style={{width: '1.1em', height: '1.1em', verticalAlign: 'middle'}} alt="Claude" />
+                            </span> <span>Claude Code</span>
+                        </div>
+                        {config?.show_gemini !== false && (
+                        <div className={`sidebar-item ${navTab === 'gemini' ? 'active' : ''}`} onClick={() => switchTool('gemini')}>
+                            <span className="sidebar-icon">
+                                <img src={geminiIcon} style={{width: '1.1em', height: '1.1em', verticalAlign: 'middle'}} alt="Gemini" />
+                            </span> <span>Gemini CLI</span>
+                        </div>
+                        )}
+                        {config?.show_codex !== false && (
+                        <div className={`sidebar-item ${navTab === 'codex' ? 'active' : ''}`} onClick={() => switchTool('codex')}>
+                            <span className="sidebar-icon">
+                                <img src={codexIcon} style={{width: '1.1em', height: '1.1em', verticalAlign: 'middle'}} alt="Codex" />
+                            </span> <span>CodeX</span>
+                        </div>
+                        )}
+                        {config?.show_opencode !== false && (
+                        <div className={`sidebar-item ${navTab === 'opencode' ? 'active' : ''}`} onClick={() => switchTool('opencode')}>
+                            <span className="sidebar-icon">
+                                <img src={opencodeIcon} style={{width: '1.1em', height: '1.1em', verticalAlign: 'middle'}} alt="OpenCode" />
+                            </span> <span>OpenCode</span>
+                        </div>
+                        )}
+                        {config?.show_codebuddy !== false && (
+                        <div className={`sidebar-item ${navTab === 'codebuddy' ? 'active' : ''}`} onClick={() => switchTool('codebuddy')}>
+                            <span className="sidebar-icon">
+                                <img src={codebuddyIcon} style={{width: '1.1em', height: '1.1em', verticalAlign: 'middle'}} alt="CodeBuddy" />
+                            </span> <span>CodeBuddy</span>
+                        </div>
+                        )}
+                        {config?.show_iflow !== false && (
+                        <div className={`sidebar-item ${navTab === 'iflow' ? 'active' : ''}`} onClick={() => switchTool('iflow')}>
+                            <span className="sidebar-icon">
+                                <img src={iflowIcon} style={{width: '1.1em', height: '1.1em', verticalAlign: 'middle'}} alt="iFlow" />
+                            </span> <span>iFlow CLI</span>
+                        </div>
+                        )}
+                        {config?.show_qoder !== false && (
+                        <div className={`sidebar-item ${navTab === 'qoder' ? 'active' : ''}`} onClick={() => switchTool('qoder')}>
+                            <span className="sidebar-icon">
+                                <img src={qoderIcon} style={{width: '1.1em', height: '1.1em', verticalAlign: 'middle'}} alt="Qoder" />
+                            </span> <span>Qoder CLI</span>
+                        </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
