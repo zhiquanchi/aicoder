@@ -120,7 +120,7 @@ func (a *App) CheckEnvironment() {
 		// Ensure node.exe is in local tool path for npm wrappers
 		a.ensureLocalNodeBinary()
 
-		// 5. Check and Install AI Tools
+		// 5. Check and Install AI Tools in private ~/.cceasy directory ONLY
 		tm := NewToolManager(a)
 
 
@@ -134,32 +134,40 @@ func (a *App) CheckEnvironment() {
 		}
 
 		tools := []string{"claude", "gemini", "codex", "opencode", "codebuddy", "qoder", "iflow"}
-		
+
 		for _, tool := range tools {
-			a.log(a.tr("Checking %s...", tool))
+			a.log(a.tr("Checking %s in private directory...", tool))
 			status := tm.GetToolStatus(tool)
-			
+
 			if !status.Installed {
-				a.log(a.tr("%s not found. Attempting automatic installation...", tool))
+				a.log(a.tr("%s not found in private directory. Attempting automatic installation...", tool))
 				if err := tm.InstallTool(tool); err != nil {
 					a.log(a.tr("ERROR: Failed to install %s: %v", tool, err))
 					// We continue to other tools even if one fails, allowing manual intervention later
 				} else {
-					a.log(a.tr("%s installed successfully.", tool))
+					a.log(a.tr("%s installed successfully to private directory.", tool))
 					a.updatePathForNode() // Refresh path after install
 				}
 			} else {
-				a.log(a.tr("%s found at %s (version: %s).", tool, status.Path, status.Version))
-				// Check for updates for all tools
+				// Tool is installed - verify it's in our private directory
+				home, _ := os.UserHomeDir()
+				expectedPrefix := filepath.Join(home, ".cceasy", "tools")
+				if !strings.HasPrefix(status.Path, expectedPrefix) {
+					a.log(a.tr("WARNING: %s found at %s (not in private directory, skipping)", tool, status.Path))
+					continue
+				}
+
+				a.log(a.tr("%s found in private directory at %s (version: %s).", tool, status.Path, status.Version))
+				// Check for updates ONLY for tools in private directory
 				if tool == "codex" || tool == "opencode" || tool == "codebuddy" || tool == "qoder" || tool == "iflow" || tool == "gemini" || tool == "claude" {
-					a.log(a.tr("Checking for %s updates...", tool))
+					a.log(a.tr("Checking for %s updates in private directory...", tool))
 					latest, err := a.getLatestNpmVersion(npmExec, tm.GetPackageName(tool))
 					if err == nil && latest != "" && latest != status.Version {
-						a.log(a.tr("New version available for %s: %s (current: %s). Updating...", tool, latest, status.Version))
+						a.log(a.tr("New version available for %s: %s (current: %s). Updating private version...", tool, latest, status.Version))
 						if err := tm.UpdateTool(tool); err != nil {
 							a.log(a.tr("ERROR: Failed to update %s: %v", tool, err))
 						} else {
-							a.log(a.tr("%s updated successfully to %s.", tool, latest))
+							a.log(a.tr("%s updated successfully to %s in private directory.", tool, latest))
 						}
 					}
 				}

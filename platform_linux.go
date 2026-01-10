@@ -23,15 +23,15 @@ func (a *App) platformStartup() {
 func (a *App) CheckEnvironment() {
 	go func() {
 		a.log(a.tr("Checking Node.js installation..."))
-		
+
 		home, _ := os.UserHomeDir()
 		localNodeDir := filepath.Join(home, ".cceasy", "tools")
 		localBinDir := filepath.Join(localNodeDir, "bin")
 
 		// 1. Setup PATH
-	envPath := os.Getenv("PATH")
+		envPath := os.Getenv("PATH")
 		commonPaths := []string{"/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"}
-		
+
 		// Add local node bin to PATH
 		commonPaths = append([]string{localBinDir}, commonPaths...)
 
@@ -43,7 +43,7 @@ func (a *App) CheckEnvironment() {
 				pathChanged = true
 			}
 		}
-		
+
 		if pathChanged {
 			envPath = strings.Join(newPathParts, ":")
 			os.Setenv("PATH", envPath)
@@ -71,13 +71,13 @@ func (a *App) CheckEnvironment() {
 				return
 			}
 			a.log(a.tr("Node.js manually installed to ") + localNodeDir)
-			
+
 			// Re-check for node
 			localNodePath := filepath.Join(localBinDir, "node")
 			if _, err := os.Stat(localNodePath); err == nil {
 				nodePath = localNodePath
 			}
-			
+
 			if nodePath == "" {
 				a.log(a.tr("Node.js installation completed but binary not found."))
 				wails_runtime.EventsEmit(a.ctx, "env-check-done")
@@ -95,45 +95,54 @@ func (a *App) CheckEnvironment() {
 				npmExec = localNpmPath
 			}
 		}
-		
+
 		if npmExec == "" {
 			a.log(a.tr("npm not found."))
 			wails_runtime.EventsEmit(a.ctx, "env-check-done")
 			return
 		}
 
-		        // 5. Check and Install AI Tools
-				tm := NewToolManager(a)
-				tools := []string{"claude", "gemini", "codex", "opencode", "codebuddy", "qoder", "iflow"}
-				
-				for _, tool := range tools {
-					a.log(a.tr("Checking %s...", tool))
-					status := tm.GetToolStatus(tool)
-					
-					if !status.Installed {
-						a.log(a.tr("%s not found. Attempting automatic installation...", tool))
-						if err := tm.InstallTool(tool); err != nil {
-							a.log(a.tr("ERROR: Failed to install %s: %v", tool, err))
-							// We continue to other tools even if one fails, allowing manual intervention later
+		// 5. Check and Install AI Tools in private ~/.cceasy directory ONLY
+		tm := NewToolManager(a)
+		tools := []string{"claude", "gemini", "codex", "opencode", "codebuddy", "qoder", "iflow"}
+
+		for _, tool := range tools {
+			a.log(a.tr("Checking %s in private directory...", tool))
+			status := tm.GetToolStatus(tool)
+
+			if !status.Installed {
+				a.log(a.tr("%s not found in private directory. Attempting automatic installation...", tool))
+				if err := tm.InstallTool(tool); err != nil {
+					a.log(a.tr("ERROR: Failed to install %s: %v", tool, err))
+					// We continue to other tools even if one fails, allowing manual intervention later
+				} else {
+					a.log(a.tr("%s installed successfully to private directory.", tool))
+				}
+			} else {
+				// Tool is installed - verify it's in our private directory
+				home, _ := os.UserHomeDir()
+				expectedPrefix := filepath.Join(home, ".cceasy", "tools")
+				if !strings.HasPrefix(status.Path, expectedPrefix) {
+					a.log(a.tr("WARNING: %s found at %s (not in private directory, skipping)", tool, status.Path))
+					continue
+				}
+
+				a.log(a.tr("%s found in private directory at %s (version: %s).", tool, status.Path, status.Version))
+				// Check for updates ONLY for tools in private directory
+				if tool == "codex" || tool == "opencode" || tool == "codebuddy" || tool == "qoder" || tool == "iflow" || tool == "gemini" || tool == "claude" {
+					a.log(a.tr("Checking for %s updates in private directory...", tool))
+					latest, err := a.getLatestNpmVersion(npmExec, tm.GetPackageName(tool))
+					if err == nil && latest != "" && latest != status.Version {
+						a.log(a.tr("New version available for %s: %s (current: %s). Updating private version...", tool, latest, status.Version))
+						if err := tm.UpdateTool(tool); err != nil {
+							a.log(a.tr("ERROR: Failed to update %s: %v", tool, err))
 						} else {
-							a.log(a.tr("%s installed successfully.", tool))
-						}
-					                    } else {
-					                        a.log(a.tr("%s found at %s (version: %s).", tool, status.Path, status.Version))
-					                        // Check for updates for all tools
-					                        if tool == "codex" || tool == "opencode" || tool == "codebuddy" || tool == "qoder" || tool == "iflow" || tool == "gemini" || tool == "claude" {
-					                            a.log(a.tr("Checking for %s updates...", tool))							latest, err := a.getLatestNpmVersion(npmExec, tm.GetPackageName(tool))
-							if err == nil && latest != "" && latest != status.Version {
-								a.log(a.tr("New version available for %s: %s (current: %s). Updating...", tool, latest, status.Version))
-								if err := tm.UpdateTool(tool); err != nil {
-									a.log(a.tr("ERROR: Failed to update %s: %v", tool, err))
-								} else {
-									a.log(a.tr("%s updated successfully to %s.", tool, latest))
-								}
-							}
+							a.log(a.tr("%s updated successfully to %s in private directory.", tool, latest))
 						}
 					}
 				}
+			}
+		}
 		a.log(a.tr("Environment check complete."))
 		wails_runtime.EventsEmit(a.ctx, "env-check-done")
 	}()

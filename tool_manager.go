@@ -26,7 +26,7 @@ func NewToolManager(app *App) *ToolManager {
 
 func (tm *ToolManager) GetToolStatus(name string) ToolStatus {
 	status := ToolStatus{Name: name}
-	
+
 	binaryNames := []string{name}
 	if name == "codex" {
 		binaryNames = append(binaryNames, "openai")
@@ -45,56 +45,51 @@ func (tm *ToolManager) GetToolStatus(name string) ToolStatus {
 	}
 
 	var path string
-	var err error
+
+	// ONLY check private ~/.cceasy directory, do NOT check system PATH
+	home, _ := os.UserHomeDir()
 
 	for _, bn := range binaryNames {
-		path, err = exec.LookPath(bn)
-		if err == nil {
-			break
-		}
-		
-		// Fallback: Check local node bin directly
-		home, _ := os.UserHomeDir()
-		
-		        if runtime.GOOS == "windows" {
-		            // Check prefix root and bin folder
-		            // Prioritize .cmd, .exe, .bat. 
-		            // Also check .ps1 and extensionless (shell scripts) as fallback
-		            possiblePaths := []string{
-		                filepath.Join(home, ".cceasy", "tools", bn+".cmd"),
-		                filepath.Join(home, ".cceasy", "tools", bn+".exe"),
-		                filepath.Join(home, ".cceasy", "tools", bn+".bat"),
-		                filepath.Join(home, ".cceasy", "tools", bn+".ps1"),
-		                filepath.Join(home, ".cceasy", "tools", "bin", bn+".cmd"),
-		                filepath.Join(home, ".cceasy", "tools", "bin", bn+".exe"),
-		                filepath.Join(home, ".cceasy", "tools", bn),
-		                filepath.Join(home, ".cceasy", "tools", "bin", bn),
-		            }
-		
-		            // Special case for opencode specific binary path
-		            if name == "opencode" {
-		                possiblePaths = append(possiblePaths, filepath.Join(home, ".cceasy", "tools", "node_modules", "opencode-windows-x64", "bin", "opencode.exe"))
-		            }
+		if runtime.GOOS == "windows" {
+			// Check prefix root and bin folder
+			// Prioritize .cmd, .exe, .bat.
+			// Also check .ps1 and extensionless (shell scripts) as fallback
+			possiblePaths := []string{
+				filepath.Join(home, ".cceasy", "tools", bn+".cmd"),
+				filepath.Join(home, ".cceasy", "tools", bn+".exe"),
+				filepath.Join(home, ".cceasy", "tools", bn+".bat"),
+				filepath.Join(home, ".cceasy", "tools", bn+".ps1"),
+				filepath.Join(home, ".cceasy", "tools", "bin", bn+".cmd"),
+				filepath.Join(home, ".cceasy", "tools", "bin", bn+".exe"),
+				filepath.Join(home, ".cceasy", "tools", bn),
+				filepath.Join(home, ".cceasy", "tools", "bin", bn),
+			}
 
-		            // Generic node_modules check using package name
-		            if pkgName := tm.GetPackageName(name); pkgName != "" {
-						base := filepath.Join(home, ".cceasy", "tools", "node_modules", pkgName, "bin", bn)
-		                possiblePaths = append(possiblePaths, base)
-						possiblePaths = append(possiblePaths, base+".js")
-		            }
-		
-		            for _, p := range possiblePaths {
-		                if info, err := os.Stat(p); err == nil && !info.IsDir() {
-		                    path = p
-		                    break
-		                }
-		            }
-		        } else {			localBin := filepath.Join(home, ".cceasy", "tools", "bin", bn)
+			// Special case for opencode specific binary path
+			if name == "opencode" {
+				possiblePaths = append(possiblePaths, filepath.Join(home, ".cceasy", "tools", "node_modules", "opencode-windows-x64", "bin", "opencode.exe"))
+			}
+
+			// Generic node_modules check using package name
+			if pkgName := tm.GetPackageName(name); pkgName != "" {
+				base := filepath.Join(home, ".cceasy", "tools", "node_modules", pkgName, "bin", bn)
+				possiblePaths = append(possiblePaths, base)
+				possiblePaths = append(possiblePaths, base+".js")
+			}
+
+			for _, p := range possiblePaths {
+				if info, err := os.Stat(p); err == nil && !info.IsDir() {
+					path = p
+					break
+				}
+			}
+		} else {
+			localBin := filepath.Join(home, ".cceasy", "tools", "bin", bn)
 			if _, err := os.Stat(localBin); err == nil {
 				path = localBin
 			}
 		}
-		
+
 		if path != "" {
 			break
 		}
@@ -106,7 +101,7 @@ func (tm *ToolManager) GetToolStatus(name string) ToolStatus {
 
 	status.Installed = true
 	status.Path = path
-	
+
 	version, err := tm.getToolVersion(name, path)
 	if err == nil {
 		status.Version = version
@@ -148,7 +143,7 @@ func (tm *ToolManager) InstallTool(name string) error {
 
 	home, _ := os.UserHomeDir()
 	localNodeDir := filepath.Join(home, ".cceasy", "tools")
-	
+
 	// Ensure the local node directory exists for prefix usage
 	if err := os.MkdirAll(localNodeDir, 0755); err != nil {
 		return fmt.Errorf("failed to create local node directory: %w", err)
@@ -180,7 +175,7 @@ func (tm *ToolManager) InstallTool(name string) error {
 
 	// Use --prefix to install to our local folder, avoiding sudo/permission issues
 	// This works with both system npm and local npm.
-	
+
 	// Add @latest to ensure latest version is installed
 	packages := []string{packageName + "@latest"}
 	if name == "opencode" && runtime.GOOS != "windows" {
@@ -213,11 +208,11 @@ func (tm *ToolManager) InstallTool(name string) error {
 	args := []string{"install", "-g"}
 	args = append(args, packages...)
 	args = append(args, "--prefix", localNodeDir, "--cache", localCacheDir, "--loglevel", "info")
-	
+
 	if strings.HasPrefix(strings.ToLower(tm.app.CurrentLanguage), "zh") {
 		args = append(args, "--registry=https://registry.npmmirror.com")
 	}
-	
+
 	var cmd *exec.Cmd
 	cmd = createNpmInstallCmd(npmPath, args)
 
@@ -249,17 +244,17 @@ func (tm *ToolManager) InstallTool(name string) error {
 		// Check for cache permission issues
 		if strings.Contains(outputStr, "EACCES") || strings.Contains(outputStr, "EEXIST") {
 			tm.app.log(tm.app.tr("Detected npm cache permission issue. Attempting to clear cache..."))
-			
+
 			// Try to clean cache
 			cleanArgs := []string{"cache", "clean", "--force", "--cache", localCacheDir}
 			if strings.HasPrefix(strings.ToLower(tm.app.CurrentLanguage), "zh") {
 				cleanArgs = append(cleanArgs, "--registry=https://registry.npmmirror.com")
 			}
-			
+
 			cleanCmd := createNpmInstallCmd(npmPath, cleanArgs)
 			cleanCmd.Env = env
 			cleanCmd.CombinedOutput() // Ignore error on clean
-			
+
 			tm.app.log(tm.app.tr("Retrying installation after cache clean..."))
 			// Retry installation
 			cmd = createNpmInstallCmd(npmPath, args)
@@ -270,7 +265,7 @@ func (tm *ToolManager) InstallTool(name string) error {
 			}
 			return nil
 		}
-		
+
 		return fmt.Errorf("failed to install %s: %v\nOutput: %s", name, err, string(out))
 	}
 	return nil
@@ -286,10 +281,17 @@ func (tm *ToolManager) UpdateTool(name string) error {
 			return fmt.Errorf("tool %s is not installed", name)
 		}
 
+		// ONLY update private version in ~/.cceasy, do NOT update system version
+		// Verify the tool is installed in our private directory
+		home, _ := os.UserHomeDir()
+		expectedPrefix := filepath.Join(home, ".cceasy", "tools")
+		if !strings.HasPrefix(status.Path, expectedPrefix) {
+			return fmt.Errorf("tool %s is not installed in private directory (%s), cannot update", name, status.Path)
+		}
+
 		cmd = createUpdateCmd(status.Path)
 
 		// Set up environment variables with proper PATH
-		home, _ := os.UserHomeDir()
 		localNodeDir := filepath.Join(home, ".cceasy", "tools")
 		localBinDir := filepath.Join(localNodeDir, "bin")
 
