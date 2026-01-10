@@ -10,6 +10,7 @@ Claude Code Easy Suite is a desktop GUI tool built with Wails, Go, and React. It
 - **Multi-Project Management (Vibe Coding):** Streamlining the process for developers to switch between different projects and working directories efficiently.
 - **Model & API Integration:** Expanding support for additional model providers and enhancing the flexibility of custom API configurations.
 - **System Integration & UX:** Improving system tray functionality, auto-launch capabilities, and environment synchronization to ensure a seamless desktop experience.
+- **Integrated Online Updates:** Providing a seamless, user-initiated update process, especially on Windows, with progress tracking and automated installer launching.
 
 ## Strategic Goals
 - **Stability and Polishing:** Prioritize bug fixes and refinement of the existing feature set to ensure a robust and reliable user experience.

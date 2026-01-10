@@ -2235,14 +2235,36 @@ func (a *App) CheckUpdate(currentVersion string) (UpdateResult, error) {
 	// Extract release URL
 	htmlURL, _ := release["html_url"].(string)
 
-	// Construct direct download URL based on platform
+	// Extract download URL from assets
 	var downloadUrl string
+	var targetFileName string
 	if goruntime.GOOS == "darwin" {
-		downloadUrl = fmt.Sprintf("https://github.com/RapidAI/aicoder/releases/download/%s/AICoder-Universal.pkg", tagName)
+		targetFileName = "AICoder-Universal.pkg"
 	} else {
-		downloadUrl = fmt.Sprintf("https://github.com/RapidAI/aicoder/releases/download/%s/AICoder-Setup.exe", tagName)
+		targetFileName = "AICoder-Setup.exe"
 	}
-	a.log(a.tr("CheckUpdate: Constructed download URL: %s", downloadUrl))
+
+	// Parse assets array from GitHub API response
+	if assets, ok := release["assets"].([]interface{}); ok && len(assets) > 0 {
+		a.log(a.tr("CheckUpdate: Found %d assets in release", len(assets)))
+		for _, assetInterface := range assets {
+			if asset, ok := assetInterface.(map[string]interface{}); ok {
+				if name, ok := asset["name"].(string); ok && name == targetFileName {
+					if browserDownloadUrl, ok := asset["browser_download_url"].(string); ok {
+						downloadUrl = browserDownloadUrl
+						a.log(a.tr("CheckUpdate: Found download URL from assets: %s", downloadUrl))
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// Fallback: construct URL manually if not found in assets
+	if downloadUrl == "" {
+		downloadUrl = fmt.Sprintf("https://github.com/RapidAI/aicoder/releases/download/%s/%s", tagName, targetFileName)
+		a.log(a.tr("CheckUpdate: Assets not found, using constructed URL: %s", downloadUrl))
+	}
 
 	// Keep original version with V prefix for display
 	displayVersion := strings.TrimSpace(tagName)

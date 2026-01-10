@@ -10,3 +10,4 @@
 ## System Integration
 - **Shell/CLI:** Integrated with `claude-code` CLI and handles environment variable synchronization.
 - **System Tray:** Utilizes `github.com/energye/systray` for system tray integration on Darwin, Windows, and Linux.
+- **Updates:** Uses GitHub API for version checking and standard HTTP libraries for downloading updates. Windows installation is automated via `shell32.dll` and `cmd` execution.
