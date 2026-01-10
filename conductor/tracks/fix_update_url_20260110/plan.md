@@ -3,7 +3,7 @@
 ## Phase 1: Backend Improvements (Go) [checkpoint: 3307dbf]
 Refine the update checking and downloading logic to ensure the correct installer asset is targeted and validated.
 
-- [x] **Task 1: Update `UpdateResult` and `CheckUpdate`** (77bfd69)
+- [x] **Task 1: Update `UpdateResult` and `CheckUpdate`** (d870d7e)
   - Add `TagName` and `DownloadUrl` fields to the `UpdateResult` struct in `app.go`.
   - In `CheckUpdate`, construct the direct download URL: `https://github.com/RapidAI/aicoder/releases/download/<tag_name>/AICoder-Setup.exe`.
   - Populate the new fields in the return value.
