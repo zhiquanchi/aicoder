@@ -167,7 +167,7 @@ func (a *App) CheckEnvironment() {
 		}
 
 		a.log(a.tr("Environment check complete."))
-		runtime.EventsEmit(a.ctx, "env-check-done")
+		a.emitEvent("env-check-done")
 	}()
 }
 
@@ -367,6 +367,14 @@ func (a *App) restartApp() {
 }
 
 func (a *App) GetDownloadsFolder() (string, error) {
+	// For testing and override purposes, check USERPROFILE first
+	if home := os.Getenv("USERPROFILE"); home != "" {
+		downloads := filepath.Join(home, "Downloads")
+		if _, err := os.Stat(downloads); err == nil {
+			return downloads, nil
+		}
+	}
+
 	// Try using the shell32.dll to get the Downloads folder (FOLDERID_Downloads)
 	// GUID: {374DE290-123F-4565-9164-39C4925E467B}
 	shell32 := syscall.NewLazyDLL("shell32.dll")
@@ -392,14 +400,6 @@ func (a *App) GetDownloadsFolder() (string, error) {
 	if res == 0 {
 		defer syscall.NewLazyDLL("ole32.dll").NewProc("CoTaskMemFree").Call(uintptr(unsafe.Pointer(path)))
 		return syscall.UTF16ToString((*[1 << 16]uint16)(unsafe.Pointer(path))[:]), nil
-	}
-
-	// Fallback to environment variable or UserHomeDir/Downloads
-	if home := os.Getenv("USERPROFILE"); home != "" {
-		downloads := filepath.Join(home, "Downloads")
-		if _, err := os.Stat(downloads); err == nil {
-			return downloads, nil
-		}
 	}
 
 	home, err := os.UserHomeDir()
@@ -792,5 +792,26 @@ func (a *App) ensureLocalNodeBinary() {
 	}
 	
 	a.log("Successfully copied node.exe to local directory.")
+}
+
+func (a *App) LaunchInstallerAndExit(installerPath string) error {
+	a.log(fmt.Sprintf("Launching installer: %s", installerPath))
+	
+	// Use cmd /c start to launch the installer and return immediately
+	cmd := exec.Command("cmd", "/c", "start", "", installerPath)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	
+	err := cmd.Start()
+	if err != nil {
+		return fmt.Errorf("failed to launch installer: %w", err)
+	}
+	
+	// Wait a tiny bit and then quit
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		runtime.Quit(a.ctx)
+	}()
+	
+	return nil
 }
 

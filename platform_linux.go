@@ -345,6 +345,16 @@ func createCondaEnvListCmd(condaCmd string) *exec.Cmd {
 
 
 
+func (a *App) LaunchInstallerAndExit(installerPath string) error {
+
+	return fmt.Errorf("automatic installation not supported on this platform")
+
+}
+
+
+
+
+
 func (a *App) GetDownloadsFolder() (string, error) {
 
 	home, err := os.UserHomeDir()

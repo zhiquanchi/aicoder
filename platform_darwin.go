@@ -409,3 +409,7 @@ func createNpmInstallCmd(npmPath string, args []string) *exec.Cmd {
 func createCondaEnvListCmd(condaCmd string) *exec.Cmd {
 	return exec.Command(condaCmd, "env", "list")
 }
+
+func (a *App) LaunchInstallerAndExit(installerPath string) error {
+	return fmt.Errorf("automatic installation not supported on this platform")
+}

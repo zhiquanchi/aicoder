@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	goruntime "runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -22,10 +23,12 @@ import (
 
 // App struct
 type App struct {
-	ctx             context.Context
-	CurrentLanguage string
-	watcher         *fsnotify.Watcher
-	testHomeDir     string // For testing purposes
+	ctx               context.Context
+	CurrentLanguage   string
+	watcher           *fsnotify.Watcher
+	testHomeDir       string // For testing purposes
+	downloadCancelers map[string]context.CancelFunc
+	downloadMutex     sync.Mutex
 }
 
 var OnConfigChanged func(AppConfig)
@@ -114,7 +117,9 @@ type AppConfig struct {
 
 // NewApp creates a new App application struct
 func NewApp() *App {
-	return &App{}
+	return &App{
+		downloadCancelers: make(map[string]context.CancelFunc),
+	}
 }
 
 // startup is called when the app starts. The context is saved
@@ -164,7 +169,7 @@ func (a *App) startConfigWatcher() {
 					
 					config, err := a.LoadConfig()
 					if err == nil {
-						runtime.EventsEmit(a.ctx, "config-updated", config)
+						a.emitEvent("config-updated", config)
 					}
 				}
 			case err, ok := <-a.watcher.Errors:
@@ -1453,9 +1458,7 @@ func (a *App) LaunchTool(toolName string, yoloMode bool, adminMode bool, pythonP
 	}
 
 func (a *App) log(message string) {
-	if a.ctx != nil {
-		runtime.EventsEmit(a.ctx, "env-log", message)
-	}
+	a.emitEvent("env-log", message)
 }
 
 func (a *App) getConfigPath() (string, error) {
@@ -2271,6 +2274,136 @@ func min(a, b int) int {
 	return b
 }
 
+type DownloadProgress struct {
+	Percentage float64 `json:"percentage"`
+	Downloaded int64   `json:"downloaded"`
+	Total      int64   `json:"total"`
+	Status     string  `json:"status"` // "downloading", "completed", "error", "cancelled"
+	Error      string  `json:"error,omitempty"`
+}
+
+func (a *App) DownloadUpdate(url string, fileName string) (string, error) {
+	a.log(fmt.Sprintf("DownloadUpdate: Starting download from %s", url))
+
+	downloadsDir, err := a.GetDownloadsFolder()
+	if err != nil {
+		return "", fmt.Errorf("failed to get downloads folder: %w", err)
+	}
+
+	destPath := filepath.Join(downloadsDir, fileName)
+	
+	// Create context with cancel for this download
+	ctx, cancel := context.WithCancel(context.Background())
+	downloadID := fileName
+	
+	a.downloadMutex.Lock()
+	a.downloadCancelers[downloadID] = cancel
+	a.downloadMutex.Unlock()
+	
+	defer func() {
+		a.downloadMutex.Lock()
+		delete(a.downloadCancelers, downloadID)
+		a.downloadMutex.Unlock()
+		cancel()
+	}()
+
+	// If file exists, try to remove it first
+	if _, err := os.Stat(destPath); err == nil {
+		os.Remove(destPath)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "AICoder-App")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("bad status: %s", resp.Status)
+	}
+
+	size := resp.ContentLength
+	out, err := os.Create(destPath)
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+
+	var downloaded int64
+	buffer := make([]byte, 64*1024)
+	lastReport := time.Now()
+
+	for {
+		n, err := resp.Body.Read(buffer)
+		if n > 0 {
+			_, writeErr := out.Write(buffer[:n])
+			if writeErr != nil {
+				return "", writeErr
+			}
+			downloaded += int64(n)
+			
+			// Report progress every 100ms
+			if time.Since(lastReport) > 100*time.Millisecond {
+				percentage := 0.0
+				if size > 0 {
+					percentage = float64(downloaded) / float64(size) * 100
+				}
+				
+				a.emitEvent("download-progress", DownloadProgress{
+					Percentage: percentage,
+					Downloaded: downloaded,
+					Total:      size,
+					Status:     "downloading",
+				})
+				lastReport = time.Now()
+			}
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			if ctx.Err() == context.Canceled {
+				a.emitEvent("download-progress", DownloadProgress{
+					Status: "cancelled",
+				})
+				return "", fmt.Errorf("download cancelled")
+			}
+			a.emitEvent("download-progress", DownloadProgress{
+				Status: "error",
+				Error:  err.Error(),
+			})
+			return "", err
+		}
+	}
+
+	// Final progress report
+	a.emitEvent("download-progress", DownloadProgress{
+		Percentage: 100,
+		Downloaded: downloaded,
+		Total:      size,
+		Status:     "completed",
+	})
+
+	return destPath, nil
+}
+
+func (a *App) CancelDownload(downloadID string) {
+	a.downloadMutex.Lock()
+	defer a.downloadMutex.Unlock()
+	
+	if cancel, ok := a.downloadCancelers[downloadID]; ok {
+		cancel()
+		delete(a.downloadCancelers, downloadID)
+	}
+}
+
 func (a *App) RecoverCC() error {
 	a.emitRecoverLog("Starting recovery process...")
 
@@ -2327,7 +2460,7 @@ func (a *App) RecoverCC() error {
 }
 
 func (a *App) emitRecoverLog(msg string) {
-	runtime.EventsEmit(a.ctx, "recover-log", msg)
+	a.emitEvent("recover-log", msg)
 }
 
 func (a *App) ShowMessage(title, message string) {
@@ -2336,6 +2469,12 @@ func (a *App) ShowMessage(title, message string) {
 		Title:   title,
 		Message: message,
 	})
+}
+
+func (a *App) emitEvent(name string, data ...interface{}) {
+	if a.ctx != nil {
+		runtime.EventsEmit(a.ctx, name, data...)
+	}
 }
 
 func (a *App) ClipboardGetText() (string, error) {
