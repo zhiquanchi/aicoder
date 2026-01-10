@@ -338,5 +338,31 @@ func createNpmInstallCmd(npmPath string, args []string) *exec.Cmd {
 }
 
 func createCondaEnvListCmd(condaCmd string) *exec.Cmd {
+
 	return exec.Command(condaCmd, "env", "list")
+
+}
+
+
+
+func (a *App) GetDownloadsFolder() (string, error) {
+
+	home, err := os.UserHomeDir()
+
+	if err != nil {
+
+		return "", err
+
+	}
+
+	downloads := filepath.Join(home, "Downloads")
+
+	if _, err := os.Stat(downloads); err == nil {
+
+		return downloads, nil
+
+	}
+
+	return home, nil
+
 }

@@ -200,7 +200,7 @@ func (a *App) installNodeJS() error {
 		if headResp != nil {
 			status = headResp.Status
 		}
-		return fmt.Errorf(a.tr("Node.js installer is not accessible (Status: %s). Please check your internet connection or mirror availability.", status))
+		return fmt.Errorf("%s", a.tr("Node.js installer is not accessible (Status: %s). Please check your internet connection or mirror availability.", status))
 	}
 	headResp.Body.Close()
 
@@ -364,6 +364,49 @@ func (a *App) restartApp() {
 	} else {
 		runtime.Quit(a.ctx)
 	}
+}
+
+func (a *App) GetDownloadsFolder() (string, error) {
+	// Try using the shell32.dll to get the Downloads folder (FOLDERID_Downloads)
+	// GUID: {374DE290-123F-4565-9164-39C4925E467B}
+	shell32 := syscall.NewLazyDLL("shell32.dll")
+	shGetKnownFolderPath := shell32.NewProc("SHGetKnownFolderPath")
+
+	// FOLDERID_Downloads GUID
+	folderID := syscall.GUID{
+		Data1: 0x374DE290,
+		Data2: 0x123F,
+		Data3: 0x4565,
+		Data4: [8]byte{0x91, 0x64, 0x39, 0xC4, 0x92, 0x5E, 0x46, 0x7B},
+	}
+
+	var path *uint16
+	// KF_FLAG_DEFAULT = 0
+	res, _, _ := shGetKnownFolderPath.Call(
+		uintptr(unsafe.Pointer(&folderID)),
+		0,
+		0,
+		uintptr(unsafe.Pointer(&path)),
+	)
+
+	if res == 0 {
+		defer syscall.NewLazyDLL("ole32.dll").NewProc("CoTaskMemFree").Call(uintptr(unsafe.Pointer(path)))
+		return syscall.UTF16ToString((*[1 << 16]uint16)(unsafe.Pointer(path))[:]), nil
+	}
+
+	// Fallback to environment variable or UserHomeDir/Downloads
+	if home := os.Getenv("USERPROFILE"); home != "" {
+		downloads := filepath.Join(home, "Downloads")
+		if _, err := os.Stat(downloads); err == nil {
+			return downloads, nil
+		}
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, "Downloads"), nil
 }
 
 func (a *App) findSh() string {

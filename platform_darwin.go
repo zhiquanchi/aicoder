@@ -262,6 +262,18 @@ func (a *App) restartApp() {
 	wails_runtime.Quit(a.ctx)
 }
 
+func (a *App) GetDownloadsFolder() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	downloads := filepath.Join(home, "Downloads")
+	if _, err := os.Stat(downloads); err == nil {
+		return downloads, nil
+	}
+	return home, nil
+}
+
 func (a *App) platformLaunch(binaryName string, yoloMode bool, adminMode bool, pythonEnv string, projectDir string, env map[string]string, modelId string) {
 	a.log(fmt.Sprintf("Launching %s...", binaryName))
 
