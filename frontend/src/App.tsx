@@ -706,17 +706,20 @@ function App() {
     };
 
     const handleDownload = async () => {
-        if (!updateResult || !updateResult.release_url) return;
+        if (!updateResult) return;
+        // Use download_url if available (added in backend update), fallback to release_url
+        const downloadUrl = updateResult.download_url || updateResult.release_url;
+        if (!downloadUrl) return;
         
         setIsDownloading(true);
         setDownloadProgress(0);
         setDownloadError("");
         setInstallerPath("");
         
+        const fileName = isWindows ? "AICoder-Setup.exe" : "AICoder-Universal.pkg";
+
         try {
-            // Extracts the filename from release_url, but we want AICoder-Setup.exe 
-            // as per requirements. Usually GitHub assets have it.
-            const path = await DownloadUpdate(updateResult.release_url, "AICoder-Setup.exe");
+            const path = await DownloadUpdate(downloadUrl, fileName);
             setInstallerPath(path);
         } catch (err: any) {
             console.error("Download error:", err);
@@ -725,7 +728,8 @@ function App() {
     };
 
     const handleCancelDownload = () => {
-        CancelDownload("AICoder-Setup.exe");
+        const fileName = isWindows ? "AICoder-Setup.exe" : "AICoder-Universal.pkg";
+        CancelDownload(fileName);
     };
 
     const handleInstall = async () => {
@@ -977,6 +981,8 @@ function App() {
             EventsOff("env-log");
             EventsOff("env-check-done");
             EventsOff("download-progress");
+            EventsOff("config-changed");
+            EventsOff("config-updated");
         };
     }, []);
 
