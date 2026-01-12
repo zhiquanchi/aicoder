@@ -2042,6 +2042,7 @@ ${instruction}`;
                                 >
                                     <span>📂</span> {t("manageProjects")}
                                 </button>
+                                {!isWindows && (
                                     <button
                                         className="btn-link"
                                         onClick={() => {
@@ -2052,6 +2053,7 @@ ${instruction}`;
                                     >
                                         <span>🌐</span> {t("proxySettings")}
                                     </button>
+                                )}
                             </div>
 
                             <div className="form-group" style={{marginTop: '15px', borderTop: '1px solid #f1f5f9', paddingTop: '15px'}}>
@@ -2321,6 +2323,7 @@ ${instruction}`;
                                                                         </span>
                                                                     )}
                                                                 </label>
+                                                                    {!isWindows && (
                                                                     <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.8rem', color: '#6b7280'}}>
                                                                         <input
                                                                             type="checkbox"
@@ -2359,6 +2362,7 @@ ${instruction}`;
                                                                             ⚙️
                                                                         </span>
                                                                     </label>
+                                                                    )}
                                                             </div>
                                                             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '15px'}}>
                                                                 <label style={{display:'flex', alignItems:'center', cursor:'pointer', fontSize: '0.8rem', color: '#6b7280'}}>

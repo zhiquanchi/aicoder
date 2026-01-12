@@ -1270,7 +1270,7 @@ func (a *App) LaunchTool(toolName string, yoloMode bool, adminMode bool, pythonP
 	env := make(map[string]string)
 
 	// Proxy settings
-	if useProxy {
+	if useProxy && goruntime.GOOS != "windows" {
 		var proxyHost, proxyPort, proxyUsername, proxyPassword string
 
 		// Get proxy configuration (matching project path > global default)
