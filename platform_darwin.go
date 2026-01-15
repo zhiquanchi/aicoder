@@ -20,8 +20,20 @@ func (a *App) platformStartup() {
 	// No terminal to hide on macOS
 }
 
-func (a *App) CheckEnvironment() {
+func (a *App) CheckEnvironment(force bool) {
 	go func() {
+		// Check config first
+		config, err := a.LoadConfig()
+		if !force && err == nil && config.PauseEnvCheck {
+			a.log(a.tr("Skipping environment check and installation."))
+			a.emitEvent("env-check-done")
+			return
+		}
+
+		if force {
+			a.log(a.tr("Manual environment check triggered."))
+		}
+
 		a.log(a.tr("Checking Node.js installation..."))
 		
 		home, _ := os.UserHomeDir()

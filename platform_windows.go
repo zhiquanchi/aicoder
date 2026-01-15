@@ -71,8 +71,26 @@ func (a *App) updatePathForNode() {
 	}
 }
 
-func (a *App) CheckEnvironment() {
+func (a *App) CheckEnvironment(force bool) {
 	go func() {
+		// Check config first
+		config, err := a.LoadConfig()
+		if err == nil {
+			// Skip if:
+			// 1. Not a forced check AND
+			// 2. PauseEnvCheck is true AND
+			// 3. EnvCheckDone is true (meaning it's not the first run)
+			if !force && config.PauseEnvCheck && config.EnvCheckDone {
+				a.log(a.tr("Skipping environment check and installation."))
+				a.emitEvent("env-check-done")
+				return
+			}
+		}
+
+		if force {
+			a.log(a.tr("Manual environment check triggered."))
+		}
+
 		a.log(a.tr("Checking Node.js installation..."))
 
 		// Check for node
@@ -175,6 +193,20 @@ func (a *App) CheckEnvironment() {
 		}
 
 		a.log(a.tr("Environment check complete."))
+
+		// Update config to skip check next time if this was the first run
+		if cfg, err := a.LoadConfig(); err == nil {
+			needsSave := false
+			if !cfg.EnvCheckDone {
+				cfg.EnvCheckDone = true
+				cfg.PauseEnvCheck = true
+				needsSave = true
+			}
+			if needsSave {
+				a.SaveConfig(cfg)
+			}
+		}
+
 		a.emitEvent("env-check-done")
 	}()
 }
