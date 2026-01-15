@@ -13,7 +13,7 @@ I have successfully added the "Skills" feature to the application.
     *   Added `SelectSkillFile()` to open a system file dialog for selecting .zip files.
 
 2.  **Frontend (`frontend/src/App.tsx`)**:
-    *   Added a "Skills" (🛠️) button to the sidebar below "Tutorial".
+    *   Added a "Skills" (🛠️) button to the sidebar at the bottom, above "Settings".
     *   Implemented the Skills view:
         *   Lists existing skills with their details.
         *   "Add Skill" button opens a modal.
