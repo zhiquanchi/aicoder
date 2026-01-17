@@ -53,5 +53,11 @@ AICoder currently supports **Conda/Anaconda** environments. After enabling "Pyth
 ## 15. Why use admin privileges to launch?
 Some projects may involve system-level file operations or access to restricted directories. Launching with admin privileges can prevent tools from failing due to insufficient permissions. This feature is currently only supported on Windows.
 
+## 16. Why can't I install some skills in Gemini/Codex?
+Gemini and Codex currently only support skills in **Zip Package** format. If you try to install a Skill ID (Address) type skill (e.g., `@org/skill`), the system will report an incompatibility. These skills are only supported in Claude Code. Please try to obtain the Zip package version of the skill for installation.
+
+## 17. Are skills shared across all tools?
+Yes. Skills added via **Zip Package** are stored in a global repository and are automatically recognized and usable by **Claude**, **Gemini**, **Codex**, and other supported tools. You only need to add them once to use them anywhere.
+
 ---
 *For more issues, please visit GitHub Issues: [RapidAI/cceasy/issues](https://github.com/RapidAI/cceasy/issues)*

@@ -53,5 +53,11 @@ AICoder 的配置文件保存在您的用户主目录下，文件名为 `.aicode
 ## 15. 为什么需要管理员权限启动？
 某些项目可能涉及系统级文件操作或受限目录访问，使用管理员权限启动可以避免工具因权限不足而报错。该功能目前仅支持 Windows 系统。
 
+## 16. 为什么 Gemini/Codex 无法安装某些技能？
+Gemini 和 Codex 目前仅支持 **Zip 包**格式的技能。如果您尝试安装 Skill ID (Address) 类型的技能（如 `@org/skill`），系统会提示不兼容。此类技能仅支持在 Claude Code 中使用。请尝试获取该技能的 Zip 包版本进行安装。
+
+## 17. 技能是所有工具共享的吗？
+是的。通过 **Zip 包**添加的技能会存储在全局仓库中，**Claude**, **Gemini**, **Codex** 等所有支持技能的工具均可自动识别并使用。您只需添加一次，即可在任意工具中调用。
+
 ---
 *更多问题请访问 GitHub Issues：[RapidAI/cceasy/issues](https://github.com/RapidAI/cceasy/issues)*
