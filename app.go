@@ -27,6 +27,10 @@ type App struct {
 	downloadCancelers map[string]context.CancelFunc
 	downloadMutex     sync.Mutex
 	IsInitMode        bool
+	installingNode    bool               // Flag to prevent concurrent Node.js installation
+	installingGit     bool               // Flag to prevent concurrent Git installation
+	nodeInstallDone   chan bool          // Channel to signal Node.js installation completion
+	installMutex      sync.Mutex
 }
 var OnConfigChanged func(AppConfig)
 var UpdateTrayMenu func(string)
@@ -86,7 +90,7 @@ type AppConfig struct {
 	CodeBuddy            ToolConfig      `json:"codebuddy"`
 	Qoder                ToolConfig      `json:"qoder"`
 	IFlow                ToolConfig      `json:"iflow"`
-	Kiro                 ToolConfig      `json:"kiro"`
+	Kilo                 ToolConfig      `json:"kilo"`
 	Projects             []ProjectConfig `json:"projects"`
 	CurrentProject       string          `json:"current_project"` // ID of the current project
 	ActiveTool           string          `json:"active_tool"`     // "claude", "gemini", or "codex"
@@ -97,7 +101,7 @@ type AppConfig struct {
 	ShowCodeBuddy        bool            `json:"show_codebuddy"`
 	ShowQoder            bool            `json:"show_qoder"`
 	ShowIFlow            bool            `json:"show_iflow"`
-	ShowKiro             bool            `json:"show_kiro"`
+	ShowKilo             bool            `json:"show_kilo"`
 	Language             string          `json:"language"`
 	CheckUpdateOnStartup bool            `json:"check_update_on_startup"`
 	// Environment check settings
@@ -122,6 +126,7 @@ type Skill struct {
 func NewApp() *App {
 	return &App{
 		downloadCancelers: make(map[string]context.CancelFunc),
+		nodeInstallDone:   make(chan bool, 1), // Buffered channel to signal Node.js installation completion
 	}
 }
 // startup is called when the app starts. The context is saved
@@ -231,7 +236,9 @@ func (a *App) GetUserHomeDir() string {
 }
 func (a *App) GetLocalCacheDir() string {
 	home := a.GetUserHomeDir()
-	return filepath.Join(home, ".cceasy", "npm_cache")
+	// Use shorter path to avoid Windows 260 character path limit
+	// npm's _cacache directory structure can create very long paths
+	return filepath.Join(home, ".cc", "cache")
 }
 func (a *App) GetCurrentProjectPath() string {
 	config, err := a.LoadConfig()
@@ -331,7 +338,7 @@ func (a *App) clearEnvVars() {
 		"CODEBUDDY_API_KEY", "CODEBUDDY_BASE_URL", "CODEBUDDY_CODE_MAX_OUTPUT_TOKENS",
 		"QODER_PERSONAL_ACCESS_TOKEN", "QODER_BASE_URL",
 		"IFLOW_API_KEY", "IFLOW_BASE_URL",
-		"KIRO_API_KEY", "KIRO_BASE_URL", "KIRO_MODEL",
+		"KILO_API_KEY", "KILO_BASE_URL", "KILO_MODEL",
 	}
 	for _, v := range vars {
 		os.Unsetenv(v)
@@ -902,8 +909,8 @@ func (a *App) syncToIFlowSettings(config AppConfig) error {
 }
 func (a *App) syncToKiloSettings(config AppConfig) error {
 	var selectedModel *ModelConfig
-	for _, m := range config.Kiro.Models {
-		if m.ModelName == config.Kiro.CurrentModel {
+	for _, m := range config.Kilo.Models {
+		if m.ModelName == config.Kilo.CurrentModel {
 			selectedModel = &m
 			break
 		}
@@ -1212,11 +1219,11 @@ func (a *App) LaunchTool(toolName string, yoloMode bool, adminMode bool, pythonP
 		envKey = "IFLOW_API_KEY"
 		envBaseUrl = "IFLOW_BASE_URL"
 		binaryName = "iflow"
-	case "kiro":
-		toolCfg = config.Kiro
-		envKey = "KIRO_API_KEY"
-		envBaseUrl = "KIRO_BASE_URL"
-		binaryName = "kilocode"
+	case "kilo":
+		toolCfg = config.Kilo
+		envKey = "KILO_API_KEY"
+		envBaseUrl = "KILO_BASE_URL"
+		binaryName = "kilo"
 	case "opencode":
 		toolCfg = config.Opencode
 		envKey = "OPENCODE_API_KEY"
@@ -1349,9 +1356,9 @@ func (a *App) LaunchTool(toolName string, yoloMode bool, adminMode bool, pythonP
 				// iFlow uses settings.json, but maybe env var too?
 				os.Setenv("IFLOW_MODEL", selectedModel.ModelId)
 				env["IFLOW_MODEL"] = selectedModel.ModelId
-			case "kiro":
-				os.Setenv("KIRO_MODEL", selectedModel.ModelId)
-				env["KIRO_MODEL"] = selectedModel.ModelId
+			case "kilo":
+				os.Setenv("KILO_MODEL", selectedModel.ModelId)
+				env["KILO_MODEL"] = selectedModel.ModelId
 			}
 		}
 		// Tool-specific configurations
@@ -1388,7 +1395,7 @@ func (a *App) LaunchTool(toolName string, yoloMode bool, adminMode bool, pythonP
 				env["OPENAI_BASE_URL"] = selectedModel.ModelUrl
 			}
 			a.syncToIFlowSettings(config)
-		case "kiro":
+		case "kilo":
 			// Configure Kilo Code settings
 			a.syncToKiloSettings(config)
 		}
@@ -1427,8 +1434,8 @@ func (a *App) LaunchTool(toolName string, yoloMode bool, adminMode bool, pythonP
 		} else if strings.ToLower(toolName) == "iflow" {
 			os.Unsetenv("IFLOW_MODEL")
 			a.clearIFlowConfig()
-		} else if strings.ToLower(toolName) == "kiro" {
-			os.Unsetenv("KIRO_MODEL")
+		} else if strings.ToLower(toolName) == "kilo" {
+			os.Unsetenv("KILO_MODEL")
 			a.clearKiloConfig()
 		}
 		a.log(fmt.Sprintf("Running %s in Original mode: Custom configurations cleared.", toolName))
@@ -1519,8 +1526,9 @@ func (a *App) LoadConfig() (AppConfig, error) {
 		{ModelName: "XiaoMi", ModelId: "mimo-v2-flash", ModelUrl: "https://api.xiaomimimo.com/v1", ApiKey: ""},
 		{ModelName: "Custom", ModelId: "", ModelUrl: "", ApiKey: "", IsCustom: true},
 	}
-	defaultKiroModels := []ModelConfig{
+	defaultKiloModels := []ModelConfig{
 		{ModelName: "Original", ModelId: "", ModelUrl: "", ApiKey: ""},
+		{ModelName: "AiCodeMirror", ModelId: "sonnet", ModelUrl: "https://api.aicodemirror.com/api/kilo", ApiKey: ""},
 		{ModelName: "ChatFire", ModelId: "gpt-4o", ModelUrl: "https://api.chatfire.cn/v1", ApiKey: ""},
 		{ModelName: "DeepSeek", ModelId: "deepseek-chat", ModelUrl: "https://api.deepseek.com/v1", ApiKey: ""},
 		{ModelName: "GLM", ModelId: "glm-4.7", ModelUrl: "https://open.bigmodel.cn/api/paas/v4", ApiKey: ""},
@@ -1574,9 +1582,9 @@ func (a *App) LoadConfig() (AppConfig, error) {
 							CurrentModel: "Original",
 							Models:       defaultIFlowModels,
 						},
-						Kiro: ToolConfig{
+						Kilo: ToolConfig{
 							CurrentModel: "AiCodeMirror",
-							Models:       defaultKiroModels,
+							Models:       defaultKiloModels,
 						},
 						Projects:       oldConfig.Projects,
 						CurrentProject: oldConfig.CurrentProj,
@@ -1587,7 +1595,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 						ShowCodeBuddy:  true,
 						ShowQoder:      true,
 						ShowIFlow:      true,
-						ShowKiro:       true,
+						ShowKilo:       true,
 					}
 					a.SaveConfig(config)
 					// Optional: os.Remove(oldPath)
@@ -1625,9 +1633,9 @@ func (a *App) LoadConfig() (AppConfig, error) {
 				CurrentModel: "Original",
 				Models:       defaultIFlowModels,
 			},
-			Kiro: ToolConfig{
+			Kilo: ToolConfig{
 				CurrentModel: "AiCodeMirror",
-				Models:       defaultKiroModels,
+				Models:       defaultKiloModels,
 			},
 			Projects: []ProjectConfig{
 				{
@@ -1645,6 +1653,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 			ShowCodeBuddy:    true,
 			ShowQoder:        true,
 			ShowIFlow:        true,
+			ShowKilo:         true,
 			EnvCheckInterval: 7, // Default to 7 days
 		}
 		err = a.SaveConfig(defaultConfig)
@@ -1657,16 +1666,32 @@ func (a *App) LoadConfig() (AppConfig, error) {
 		ShowCodeBuddy: true,
 		ShowQoder:     true,
 		ShowIFlow:     true,
-		ShowKiro:      true,
+		ShowKilo:      true,
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return config, err
 	}
+
+	// Check if this is an old config without the new show_* fields
+	// If show_kilo is not present in JSON, default it to true
+	var rawConfig map[string]interface{}
+	json.Unmarshal(data, &rawConfig)
+	hasShowKilo := false
+	if _, ok := rawConfig["show_kilo"]; ok {
+		hasShowKilo = true
+	}
+
 	err = json.Unmarshal(data, &config)
 	if err != nil {
 		return config, err
 	}
+
+	// Set default values for new fields if not present in old configs
+	if !hasShowKilo {
+		config.ShowKilo = true
+	}
+
 	// Set default values for new fields if not present or invalid
 	if config.EnvCheckInterval < 2 || config.EnvCheckInterval > 30 {
 		config.EnvCheckInterval = 7 // Default to 7 days
@@ -1718,9 +1743,9 @@ func (a *App) LoadConfig() (AppConfig, error) {
 		config.IFlow.Models = defaultIFlowModels
 		config.IFlow.CurrentModel = "Original"
 	}
-	if config.Kiro.Models == nil || len(config.Kiro.Models) == 0 {
-		config.Kiro.Models = defaultKiroModels
-		config.Kiro.CurrentModel = "AiCodeMirror"
+	if config.Kilo.Models == nil || len(config.Kilo.Models) == 0 {
+		config.Kilo.Models = defaultKiloModels
+		config.Kilo.CurrentModel = "AiCodeMirror"
 	}
 	ensureModel(&config.Claude.Models, "AiCodeMirror", "https://api.aicodemirror.com/api/claudecode", "sonnet", "")
 	ensureModel(&config.Claude.Models, "Noin.AI", "https://ai.ourines.com/api", "sonnet", "")
@@ -1797,6 +1822,14 @@ func (a *App) LoadConfig() (AppConfig, error) {
 	ensureModel(&config.IFlow.Models, "Kimi", "https://api.kimi.com/coding/v1", "kimi-for-coding", "")
 	ensureModel(&config.IFlow.Models, "MiniMax", "https://api.minimaxi.com/v1", "MiniMax-M2.1", "")
 	ensureModel(&config.IFlow.Models, "XiaoMi", "https://api.xiaomimimo.com/v1", "mimo-v2-flash", "")
+	ensureModel(&config.Kilo.Models, "AiCodeMirror", "https://api.aicodemirror.com/api/kilo", "sonnet", "")
+	ensureModel(&config.Kilo.Models, "ChatFire", "https://api.chatfire.cn/v1", "gpt-4o", "")
+	ensureModel(&config.Kilo.Models, "DeepSeek", "https://api.deepseek.com/v1", "deepseek-chat", "")
+	ensureModel(&config.Kilo.Models, "GLM", "https://open.bigmodel.cn/api/paas/v4", "glm-4.7", "")
+	ensureModel(&config.Kilo.Models, "Doubao", "https://ark.cn-beijing.volces.com/api/coding/v3", "doubao-seed-code-preview-latest", "")
+	ensureModel(&config.Kilo.Models, "Kimi", "https://api.kimi.com/coding/v1", "kimi-for-coding", "")
+	ensureModel(&config.Kilo.Models, "MiniMax", "https://api.minimaxi.com/v1", "MiniMax-M2.1", "")
+	ensureModel(&config.Kilo.Models, "XiaoMi", "https://api.xiaomimimo.com/v1", "mimo-v2-flash", "")
 	// Ensure 'Original' is always present and first
 	ensureOriginal := func(models *[]ModelConfig) {
 		found := false
@@ -1828,7 +1861,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 	ensureOriginal(&config.CodeBuddy.Models)
 	ensureOriginal(&config.Qoder.Models)
 	ensureOriginal(&config.IFlow.Models)
-	ensureOriginal(&config.Kiro.Models)
+	ensureOriginal(&config.Kilo.Models)
 	cleanOpencodeModels(&config.Opencode.Models)
 	cleanOpencodeModels(&config.CodeBuddy.Models)
 	cleanOpencodeModels(&config.IFlow.Models)
@@ -1851,7 +1884,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 	ensureCustom(&config.Opencode.Models)
 	ensureCustom(&config.CodeBuddy.Models)
 	ensureCustom(&config.IFlow.Models)
-	ensureCustom(&config.Kiro.Models)
+	ensureCustom(&config.Kilo.Models)
 	// Qoder only has Original and Qoder
 	// Preserve existing Qoder key if present
 	var existingQoderKey string
@@ -1909,7 +1942,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 	moveCustomToLast(&config.Opencode.Models)
 	moveCustomToLast(&config.CodeBuddy.Models)
 	moveCustomToLast(&config.IFlow.Models)
-	moveCustomToLast(&config.Kiro.Models)
+	moveCustomToLast(&config.Kilo.Models)
 	ensureOriginalFirst(&config.Claude.Models)
 	ensureOriginalFirst(&config.Gemini.Models)
 	ensureOriginalFirst(&config.Codex.Models)
@@ -1917,7 +1950,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 	ensureOriginalFirst(&config.CodeBuddy.Models)
 	ensureOriginalFirst(&config.Qoder.Models)
 	ensureOriginalFirst(&config.IFlow.Models)
-	ensureOriginalFirst(&config.Kiro.Models)
+	ensureOriginalFirst(&config.Kilo.Models)
 	// Ensure CurrentModel is valid
 	if config.Gemini.CurrentModel == "" {
 		config.Gemini.CurrentModel = "Original"
@@ -1937,12 +1970,12 @@ func (a *App) LoadConfig() (AppConfig, error) {
 	if config.IFlow.CurrentModel == "" {
 		config.IFlow.CurrentModel = "Original"
 	}
-	if config.Kiro.Models == nil || len(config.Kiro.Models) == 0 {
-		config.Kiro.Models = defaultKiroModels
-		config.Kiro.CurrentModel = "AiCodeMirror"
+	if config.Kilo.Models == nil || len(config.Kilo.Models) == 0 {
+		config.Kilo.Models = defaultKiloModels
+		config.Kilo.CurrentModel = "AiCodeMirror"
 	}
-	if config.Kiro.CurrentModel == "" {
-		config.Kiro.CurrentModel = "AiCodeMirror"
+	if config.Kilo.CurrentModel == "" {
+		config.Kilo.CurrentModel = "AiCodeMirror"
 	}
 	if config.ActiveTool == "" {
 		config.ActiveTool = "message"
@@ -1963,7 +1996,7 @@ func (a *App) LoadConfig() (AppConfig, error) {
 	normalizeCurrentModel(&config.CodeBuddy)
 	normalizeCurrentModel(&config.Qoder)
 	normalizeCurrentModel(&config.IFlow)
-	normalizeCurrentModel(&config.Kiro)
+	normalizeCurrentModel(&config.Kilo)
 	return config, nil
 }
 // getProviderModel gets the model for a specific provider name from a tool config
@@ -2725,7 +2758,8 @@ func (a *App) detectCondaEnvironments() []PythonEnvironment {
 				addEnv(name, path)
 			}
 		} else {
-			a.log(a.tr("Failed to list conda environments: ") + err.Error())
+			// Only log as info, not error - conda command failed but this is not critical
+			a.log(a.tr("Note: Unable to list conda environments via command (conda may not be fully initialized): ") + err.Error())
 		}
 	}
 	// 2. Scan common env directories (Fallback/Augment)
@@ -2754,7 +2788,10 @@ func (a *App) detectCondaEnvironments() []PythonEnvironment {
 	for _, env := range envMap {
 		envs = append(envs, env)
 	}
-	a.log(a.tr("Total conda environments found: %d", len(envs)))
+	// Only log if conda environments were found
+	if len(envs) > 0 {
+		a.log(a.tr("Total conda environments found: %d", len(envs)))
+	}
 	return envs
 }
 // findCondaCommand tries to locate the conda executable
@@ -2809,7 +2846,7 @@ func (a *App) findCondaCommand() string {
 			}
 		}
 	}
-	a.log(a.tr("Conda not found in any common location"))
+	// No need to log if conda not found - it's normal if user doesn't use conda
 	return ""
 }
 // getCommonCondaPaths returns platform-specific common conda installation paths
@@ -3219,7 +3256,7 @@ func getToolConfigDirName(tool string) string {
 		return ".qoder"
 	case "iflow":
 		return ".iflow"
-	case "kiro", "kilocode":
+	case "kilo", "kilocode":
 		return ".kilocode"
 	default:
 		return "." + strings.ToLower(tool)
@@ -3572,6 +3609,42 @@ var translations = map[string]map[string]string{
 		"zh-Hans": "Node.js 已安装。",
 		"zh-Hant": "Node.js 已安裝。",
 	},
+	"Node.js is already installed.": {
+		"zh-Hans": "Node.js 已经安装。",
+		"zh-Hant": "Node.js 已經安裝。",
+	},
+	"Node.js installation already in progress, waiting for completion...": {
+		"zh-Hans": "Node.js 正在安装中，等待完成...",
+		"zh-Hant": "Node.js 正在安裝中，等待完成...",
+	},
+	"Node.js installation completed by another process.": {
+		"zh-Hans": "Node.js 安装已由另一个进程完成。",
+		"zh-Hant": "Node.js 安裝已由另一個進程完成。",
+	},
+	"ERROR: Timeout waiting for Node.js installation to complete.": {
+		"zh-Hans": "错误：等待 Node.js 安装完成超时。",
+		"zh-Hant": "錯誤：等待 Node.js 安裝完成超時。",
+	},
+	"ERROR: Node.js is not available. Cannot proceed with AI tools installation.": {
+		"zh-Hans": "错误：Node.js 不可用。无法继续安装 AI 工具。",
+		"zh-Hant": "錯誤：Node.js 不可用。無法繼續安裝 AI 工具。",
+	},
+	"Retrying npm verification (attempt %d/%d)...": {
+		"zh-Hans": "重试 npm 验证（第 %d/%d 次尝试）...",
+		"zh-Hant": "重試 npm 驗證（第 %d/%d 次嘗試）...",
+	},
+	"npm not found in PATH, updating environment...": {
+		"zh-Hans": "在 PATH 中未找到 npm，正在更新环境...",
+		"zh-Hant": "在 PATH 中未找到 npm，正在更新環境...",
+	},
+	"npm command test failed: %v": {
+		"zh-Hans": "npm 命令测试失败：%v",
+		"zh-Hant": "npm 命令測試失敗：%v",
+	},
+	"ERROR: npm not found after %d attempts. Cannot install AI tools. Please ensure Node.js is properly installed.": {
+		"zh-Hans": "错误：经过 %d 次尝试后仍未找到 npm。无法安装 AI 工具。请确保 Node.js 已正确安装。",
+		"zh-Hant": "錯誤：經過 %d 次嘗試後仍未找到 npm。無法安裝 AI 工具。請確保 Node.js 已正確安裝。",
+	},
 	"Checking Git installation...": {
 		"zh-Hans": "正在检查 Git 安装...",
 		"zh-Hant": "正在檢查 Git 安裝...",
@@ -3761,9 +3834,9 @@ var translations = map[string]map[string]string{
 		"zh-Hans": "正在下载 Git %s...",
 		"zh-Hant": "正在下載 Git %s...",
 	},
-	"Downloading Node.js (%.1f%%): %d/%d bytes": {
-		"zh-Hans": "正在下载 Node.js (%.1f%%): %d/%d 字节",
-		"zh-Hant": "正在下載 Node.js (%.1f%%): %d/%d 字節",
+	"Downloading (%.1f%%): %d/%d bytes": {
+		"zh-Hans": "正在下载 (%.1f%%): %d/%d 字节",
+		"zh-Hant": "正在下載 (%.1f%%): %d/%d 字節",
 	},
 	"Node.js installer is not accessible (Status: %s). Please check your internet connection or mirror availability.": {
 		"zh-Hans": "无法访问 Node.js 安装程序 (状�? %s)。请检查您的网络连接或镜像可用性",
@@ -3857,9 +3930,9 @@ var translations = map[string]map[string]string{
 		"zh-Hans": "使用 conda 命令: ",
 		"zh-Hant": "使用 conda 命令: ",
 	},
-	"Failed to list conda environments: ": {
-		"zh-Hans": "列出 conda 环境失败: ",
-		"zh-Hant": "列出 conda 環境失敗: ",
+	"Note: Unable to list conda environments via command (conda may not be fully initialized): ": {
+		"zh-Hans": "注意：无法通过命令列出 conda 环境（conda 可能未完全初始化）: ",
+		"zh-Hant": "注意：無法通過命令列出 conda 環境（conda 可能未完全初始化）: ",
 	},
 	"Total conda environments found: %d": {
 		"zh-Hans": "共发�?%d �?conda 环境",
@@ -3880,10 +3953,6 @@ var translations = map[string]map[string]string{
 	"Found conda at: ": {
 		"zh-Hans": "发现 conda 位于: ",
 		"zh-Hant": "發現 conda 位於: ",
-	},
-	"Conda not found in any common location": {
-		"zh-Hans": "在任何常用位置都未找到?Conda",
-		"zh-Hant": "在任何常用位置都未找到?Conda",
 	},
 }
 func (a *App) tr(key string, args ...interface{}) string {

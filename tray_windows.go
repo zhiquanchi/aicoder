@@ -211,20 +211,20 @@ func setupTray(app *App, appOptions *options.App) {
 			}
 
 		// 8. Kilo Code CLI Submenu
-		mKiro := systray.AddMenuItem("Kilo Code CLI", "Kilo Code Models")
-		for _, model := range config.Kiro.Models {
-			m := mKiro.AddSubMenuItemCheckbox(model.ModelName, "Switch to "+model.ModelName, model.ModelName == config.Kiro.CurrentModel && config.ActiveTool == "kiro")
-			toolItems["kiro-"+model.ModelName] = m
+		mKilo := systray.AddMenuItem("Kilo Code CLI", "Kilo Code Models")
+		for _, model := range config.Kilo.Models {
+			m := mKilo.AddSubMenuItemCheckbox(model.ModelName, "Switch to "+model.ModelName, model.ModelName == config.Kilo.CurrentModel && config.ActiveTool == "kilo")
+			toolItems["kilo-"+model.ModelName] = m
 
 			modelName := model.ModelName
 			m.Click(func() {
 				go func() {
 					currentConfig, _ := app.LoadConfig()
-					currentConfig.Kiro.CurrentModel = modelName
-					currentConfig.ActiveTool = "kiro"
+					currentConfig.Kilo.CurrentModel = modelName
+					currentConfig.ActiveTool = "kilo"
 					app.SaveConfig(currentConfig)
 
-					for _, m := range currentConfig.Kiro.Models {
+					for _, m := range currentConfig.Kilo.Models {
 						if m.ModelName == modelName && m.ApiKey == "" {
 							runtime.WindowShow(app.ctx)
 							break
@@ -301,7 +301,7 @@ func setupTray(app *App, appOptions *options.App) {
 														(cfg.ActiveTool == "codebuddy" && name == "codebuddy-"+cfg.CodeBuddy.CurrentModel) ||
 														(cfg.ActiveTool == "qoder" && name == "qoder-"+cfg.Qoder.CurrentModel) ||
 														(cfg.ActiveTool == "iflow" && name == "iflow-"+cfg.IFlow.CurrentModel) ||
-														(cfg.ActiveTool == "kiro" && name == "kiro-"+cfg.Kiro.CurrentModel) {
+														(cfg.ActiveTool == "kilo" && name == "kilo-"+cfg.Kilo.CurrentModel) {
 														item.Check()
 													} else {
 														item.Uncheck()

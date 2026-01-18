@@ -30,4 +30,4 @@ var trayTranslations = map[string]map[string]string{
 	},
 }
 
-const RequiredNodeVersion = "22.14.0"
+const RequiredNodeVersion = "24.13.0"

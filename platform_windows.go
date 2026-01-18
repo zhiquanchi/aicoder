@@ -34,104 +34,274 @@ func (a *App) platformInitConsole() {
 }
 
 // RunEnvironmentCheckCLI runs environment check in command-line mode (synchronous, no GUI events)
+// Installation order: Node.js → Git → AI Tools
 func (a *App) RunEnvironmentCheckCLI() {
-	fmt.Println("\n[1/4] Checking Node.js installation...")
+	fmt.Println("\n========================================")
+	fmt.Println("Environment Setup - Step by Step")
+	fmt.Println("========================================")
 
-	// Check for node
+	// ===== STEP 1: Node.js Installation and Verification =====
+	fmt.Println("\n[1/4] Step 1: Node.js Installation")
+	fmt.Println("--------------------------------------")
+
+	nodeVersion := ""
+
+	// Check if Node.js is already installed
 	nodeCmd := exec.Command("node", "--version")
 	nodeCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: false}
-	if err := nodeCmd.Run(); err != nil {
-		fmt.Println("Node.js not found. Downloading and installing...")
+	if out, err := nodeCmd.Output(); err == nil {
+		nodeVersion = strings.TrimSpace(string(out))
+		fmt.Printf("✓ Node.js is already installed: %s\n", nodeVersion)
+	} else {
+		fmt.Println("Node.js not found. Installing...")
 		if err := a.installNodeJSCLI(); err != nil {
-			fmt.Printf("ERROR: Failed to install Node.js: %v\n", err)
+			fmt.Printf("✗ ERROR: Failed to install Node.js: %v\n", err)
+			fmt.Println("\nEnvironment setup failed. Please install Node.js manually.")
 			return
 		}
-		fmt.Println("✓ Node.js installed successfully.")
-	} else {
-		fmt.Println("✓ Node.js is already installed.")
+
+		// Verify Node.js installation
+		fmt.Println("Verifying Node.js installation...")
+		a.updatePathForNode()
+		time.Sleep(2 * time.Second) // Wait for installation to complete
+
+		nodeCmd = exec.Command("node", "--version")
+		nodeCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: false}
+		if out, err := nodeCmd.Output(); err == nil {
+			nodeVersion = strings.TrimSpace(string(out))
+			fmt.Printf("✓ Node.js installed and verified successfully: %s\n", nodeVersion)
+		} else {
+			fmt.Printf("✗ ERROR: Node.js installation verification failed: %v\n", err)
+			fmt.Println("\nEnvironment setup failed. Please restart and try again.")
+			return
+		}
 	}
 
-	// Update path for the current process
+	// Verify npm is working
+	fmt.Println("Verifying npm availability...")
 	a.updatePathForNode()
 
-	// Check for Git
-	fmt.Println("\n[2/4] Checking Git installation...")
-	if _, err := exec.LookPath("git"); err != nil {
-		gitFound := false
-		if _, err := os.Stat(`C:\Program Files\Git\cmd\git.exe`); err == nil {
-			gitFound = true
+	var npmExec string
+	var npmVersion string
+	maxRetries := 10
+	npmReady := false
+
+	for i := 0; i < maxRetries; i++ {
+		if i > 0 {
+			fmt.Printf("  Retry %d/%d...\n", i+1, maxRetries)
+			time.Sleep(2 * time.Second)
 		}
 
-		if gitFound {
-			a.updatePathForGit()
-			fmt.Println("✓ Git found in standard location.")
-		} else {
-			fmt.Println("Git not found. Downloading and installing...")
-			if err := a.installGitBashCLI(); err != nil {
-				fmt.Printf("ERROR: Failed to install Git: %v\n", err)
-			} else {
-				fmt.Println("✓ Git installed successfully.")
-				a.updatePathForGit()
+		var err error
+		npmExec, err = exec.LookPath("npm")
+		if err != nil {
+			npmExec, err = exec.LookPath("npm.cmd")
+		}
+
+		if err == nil && npmExec != "" {
+			npmTestCmd := exec.Command(npmExec, "--version")
+			npmTestCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: false}
+			if out, err := npmTestCmd.Output(); err == nil {
+				npmVersion = strings.TrimSpace(string(out))
+				fmt.Printf("✓ npm verified successfully: %s (version: %s)\n", npmExec, npmVersion)
+				npmReady = true
+				break
 			}
 		}
+
+		a.updatePathForNode()
+	}
+
+	if !npmReady {
+		fmt.Printf("✗ ERROR: npm not available after %d attempts\n", maxRetries)
+		fmt.Println("\nEnvironment setup failed. Please check Node.js installation.")
+		return
+	}
+
+	// ===== STEP 2: Git Installation and Verification =====
+	fmt.Println("\n[2/4] Step 2: Git Installation")
+	fmt.Println("--------------------------------------")
+
+	gitInstalled := false
+	gitVersion := ""
+
+	// Check if Git is already installed
+	if gitPath, err := exec.LookPath("git"); err == nil {
+		gitCmd := exec.Command(gitPath, "--version")
+		gitCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: false}
+		if out, err := gitCmd.Output(); err == nil {
+			gitVersion = strings.TrimSpace(string(out))
+			fmt.Printf("✓ Git is already installed: %s\n", gitVersion)
+			gitInstalled = true
+		}
 	} else {
-		fmt.Println("✓ Git is already installed.")
+		// Check standard installation path
+		if _, err := os.Stat(`C:\Program Files\Git\cmd\git.exe`); err == nil {
+			a.updatePathForGit()
+			fmt.Println("✓ Git found in standard location.")
+			gitInstalled = true
+		}
 	}
 
-	// Ensure node.exe is in local tool path
-	fmt.Println("\n[3/4] Setting up local Node.js environment...")
+	if !gitInstalled {
+		fmt.Println("Git not found. Installing...")
+		if err := a.installGitBashCLI(); err != nil {
+			fmt.Printf("✗ ERROR: Failed to install Git: %v\n", err)
+			fmt.Println("\nGit installation failed. AI tools will be installed, but some features may not work.")
+			fmt.Println("You can install Git manually later from: https://git-scm.com/download/win")
+		} else {
+			// Verify Git installation
+			fmt.Println("Verifying Git installation...")
+			a.updatePathForGit()
+			time.Sleep(2 * time.Second) // Wait for installation to complete
+
+			if gitPath, err := exec.LookPath("git"); err == nil {
+				gitCmd := exec.Command(gitPath, "--version")
+				gitCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: false}
+				if out, err := gitCmd.Output(); err == nil {
+					gitVersion = strings.TrimSpace(string(out))
+					fmt.Printf("✓ Git installed and verified successfully: %s\n", gitVersion)
+					gitInstalled = true
+				}
+			}
+
+			if !gitInstalled {
+				fmt.Println("✗ WARNING: Git installation verification failed.")
+				fmt.Println("  Some AI tools may not work properly without Git.")
+			}
+		}
+	}
+
+	// ===== STEP 3: Visual C++ Redistributable Installation =====
+	fmt.Println("\n[3/5] Step 3: Visual C++ Redistributable")
+	fmt.Println("--------------------------------------")
+	fmt.Println("Checking Visual C++ Redistributable (required for codex)...")
+
+	// Add detailed architecture info
+	arch := os.Getenv("PROCESSOR_ARCHITECTURE")
+	fmt.Printf("System Architecture: %s\n", arch)
+
+	isInstalled := a.isVCRedistInstalled()
+	fmt.Printf("Registry Check Result: %v\n", isInstalled)
+
+	if isInstalled {
+		fmt.Println("✓ Visual C++ Redistributable is already installed")
+	} else {
+		fmt.Println("Visual C++ Redistributable not found. Installing...")
+		fmt.Println("  → This will download and install VC++ Redistributable")
+		fmt.Println("  → You may see a UAC prompt - please accept it")
+		if err := a.installVCRedist(); err != nil {
+			fmt.Printf("✗ WARNING: Failed to install VC Redistributable: %v\n", err)
+			fmt.Println("  Some tools like codex may not work properly without it.")
+			fmt.Println("  You can install it manually from: https://aka.ms/vs/17/release/vc_redist.x64.exe")
+		} else {
+			fmt.Println("✓ Visual C++ Redistributable installed successfully")
+		}
+	}
+
+	// ===== STEP 4: Local Node Environment Setup =====
+	fmt.Println("\n[4/5] Step 4: Local Node.js Environment Setup")
+	fmt.Println("--------------------------------------")
 	a.ensureLocalNodeBinary()
+	fmt.Println("✓ Local Node.js environment configured")
 
-	// Check and Install AI Tools
-	fmt.Println("\n[4/4] Checking AI Tools installation...")
+	// ===== STEP 5: AI Tools Installation to Private Directory =====
+	fmt.Println("\n[5/5] Step 5: AI Tools Installation")
+	fmt.Println("--------------------------------------")
+	fmt.Println("Installing AI coding tools to private directory (~/.cceasy/tools)")
+
 	tm := NewToolManager(a)
+	// Install kilo first, then other tools
+	tools := []string{"kilo", "claude", "gemini", "codex", "opencode", "codebuddy", "qoder", "iflow"}
 
-	npmExec, err := exec.LookPath("npm")
-	if err != nil {
-		npmExec, err = exec.LookPath("npm.cmd")
-	}
-	if npmExec == "" {
-		npmExec = "npm"
-	}
+	installedCount := 0
+	updatedCount := 0
+	failedCount := 0
+	skippedCount := 0
 
-	tools := []string{"claude", "gemini", "codex", "opencode", "codebuddy", "qoder", "iflow", "kiro"}
+	for idx, tool := range tools {
+		fmt.Printf("\n[%d/%d] Processing %s...\n", idx+1, len(tools), tool)
 
-	for _, tool := range tools {
-		fmt.Printf("\nChecking %s...\n", tool)
 		status := tm.GetToolStatus(tool)
 
 		if !status.Installed {
-			fmt.Printf("  %s not found. Installing...\n", tool)
+			// Tool not installed, install it
+			fmt.Printf("  → Installing %s to private directory...\n", tool)
 			if err := tm.InstallTool(tool); err != nil {
-				fmt.Printf("  ERROR: Failed to install %s: %v\n", tool, err)
+				fmt.Printf("  ✗ Failed to install %s: %v\n", tool, err)
+				failedCount++
 			} else {
-				fmt.Printf("  ✓ %s installed successfully.\n", tool)
-				a.updatePathForNode()
+				// Verify installation succeeded
+				status = tm.GetToolStatus(tool)
+				if status.Installed {
+					fmt.Printf("  ✓ %s installed successfully (version: %s)\n", tool, status.Version)
+					installedCount++
+				} else {
+					fmt.Printf("  ✗ Installation completed but verification failed for %s\n", tool)
+					failedCount++
+				}
 			}
 		} else {
+			// Tool already installed, check if it's in private directory
 			home, _ := os.UserHomeDir()
 			expectedPrefix := filepath.Join(home, ".cceasy", "tools")
+
 			if !strings.HasPrefix(status.Path, expectedPrefix) {
-				fmt.Printf("  ! %s found at %s (not in private directory, skipping)\n", tool, status.Path)
+				fmt.Printf("  ⊘ %s found at: %s\n", tool, status.Path)
+				fmt.Printf("    (System installation, not in private directory - skipping)\n")
+				skippedCount++
 				continue
 			}
 
-			fmt.Printf("  ✓ %s is installed (version: %s)\n", tool, status.Version)
+			fmt.Printf("  ✓ %s is already installed (version: %s)\n", tool, status.Version)
 
 			// Check for updates
-			if tool == "codex" || tool == "opencode" || tool == "codebuddy" || tool == "qoder" || tool == "iflow" || tool == "gemini" || tool == "claude" || tool == "kiro" {
-				fmt.Printf("  Checking for updates...\n")
-				latest, err := a.getLatestNpmVersion(npmExec, tm.GetPackageName(tool))
-				if err == nil && latest != "" && latest != status.Version {
-					fmt.Printf("  New version available: %s (current: %s). Updating...\n", latest, status.Version)
-					if err := tm.UpdateTool(tool); err != nil {
-						fmt.Printf("  ERROR: Failed to update %s: %v\n", tool, err)
-					} else {
-						fmt.Printf("  ✓ Updated to version %s\n", latest)
-					}
+			fmt.Printf("    Checking for updates...\n")
+			latest, err := a.getLatestNpmVersion(npmExec, tm.GetPackageName(tool))
+			if err != nil {
+				fmt.Printf("    ⊘ Could not check for updates: %v\n", err)
+			} else if latest == "" {
+				fmt.Printf("    ⊘ Could not determine latest version\n")
+			} else if latest == status.Version {
+				fmt.Printf("    ✓ Already at latest version (%s)\n", latest)
+			} else {
+				fmt.Printf("    → New version available: %s (current: %s)\n", latest, status.Version)
+				fmt.Printf("    → Updating %s...\n", tool)
+				if err := tm.UpdateTool(tool); err != nil {
+					fmt.Printf("    ✗ Failed to update: %v\n", err)
+					failedCount++
+				} else {
+					// Verify update succeeded
+					newStatus := tm.GetToolStatus(tool)
+					fmt.Printf("    ✓ Updated successfully (version: %s)\n", newStatus.Version)
+					updatedCount++
 				}
 			}
 		}
+	}
+
+	// Summary
+	fmt.Println("\n========================================")
+	fmt.Println("Environment Setup Summary")
+	fmt.Println("========================================")
+	fmt.Printf("Node.js: %s\n", nodeVersion)
+	if gitInstalled {
+		fmt.Printf("Git: %s\n", gitVersion)
+	} else {
+		fmt.Println("Git: Not installed (optional)")
+	}
+	fmt.Println("\nAI Tools:")
+	fmt.Printf("  Newly installed: %d\n", installedCount)
+	fmt.Printf("  Updated: %d\n", updatedCount)
+	fmt.Printf("  Failed: %d\n", failedCount)
+	fmt.Printf("  Skipped (system): %d\n", skippedCount)
+	fmt.Println("========================================")
+
+	if failedCount > 0 {
+		fmt.Println("\n⚠ Some tools failed to install or update.")
+		fmt.Println("You can try installing them manually later from the application.")
+	} else {
+		fmt.Println("\n✓ Environment setup completed successfully!")
 	}
 
 	// Update config
@@ -173,7 +343,9 @@ func (a *App) installNodeJSCLI() error {
 	if err := a.downloadFileCLI(msiPath, downloadURL); err != nil {
 		return err
 	}
-	defer os.Remove(msiPath)
+
+	// Wait a moment to ensure file is fully written and not locked
+	time.Sleep(500 * time.Millisecond)
 
 	// Install
 	fmt.Println("  Installing Node.js (this may take a few minutes)...")
@@ -212,7 +384,38 @@ func (a *App) installNodeJSCLI() error {
 	for elapsed < maxWaitTime {
 		if _, err := os.Stat(nodePath); err == nil {
 			fmt.Println("  Installation completed successfully.")
+
+			// Wait for npm to be available as well
+			fmt.Println("  Verifying npm availability...")
+			npmReady := false
+			npmWaitTime := 30 * time.Second
+			npmCheckInterval := 1 * time.Second
+			npmElapsed := time.Duration(0)
+
+			for npmElapsed < npmWaitTime {
+				npmCmd := exec.Command("npm", "--version")
+				npmCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: false}
+				if err := npmCmd.Run(); err == nil {
+					fmt.Println("  npm is ready.")
+					npmReady = true
+					break
+				}
+				time.Sleep(npmCheckInterval)
+				npmElapsed += npmCheckInterval
+			}
+
+			if !npmReady {
+				fmt.Println("  Warning: npm verification timed out, but continuing anyway...")
+			}
+
 			time.Sleep(2 * time.Second) // Additional wait for finalization
+
+			// Clean up installer file after successful installation
+			go func() {
+				time.Sleep(5 * time.Second)
+				os.Remove(msiPath)
+			}()
+
 			return nil
 		}
 		time.Sleep(checkInterval)
@@ -220,12 +423,16 @@ func (a *App) installNodeJSCLI() error {
 	}
 
 	fmt.Println("  Warning: Installation verification timed out.")
+
+	// Try to clean up installer file
+	os.Remove(msiPath)
+
 	return nil
 }
 
 func (a *App) installGitBashCLI() error {
-	gitVersion := "2.47.1"
-	fullVersion := "v2.47.1.windows.1"
+	gitVersion := "2.52.0"
+	fullVersion := "v2.52.0.windows.1"
 	fileName := fmt.Sprintf("Git-%s-64-bit.exe", gitVersion)
 
 	downloadURL := fmt.Sprintf("https://github.com/git-for-windows/git/releases/download/%s/%s", fullVersion, fileName)
@@ -237,7 +444,9 @@ func (a *App) installGitBashCLI() error {
 	if err := a.downloadFileCLI(exePath, downloadURL); err != nil {
 		return err
 	}
-	defer os.Remove(exePath)
+
+	// Wait a moment to ensure file is fully written and not locked
+	time.Sleep(500 * time.Millisecond)
 
 	fmt.Println("  Installing Git (this may take a few minutes)...")
 	fmt.Println("  You will be prompted for administrator permission. Please accept to continue.")
@@ -275,6 +484,13 @@ func (a *App) installGitBashCLI() error {
 		if _, err := os.Stat(gitPath); err == nil {
 			fmt.Println("  Installation completed successfully.")
 			time.Sleep(2 * time.Second) // Additional wait for finalization
+
+			// Clean up installer file after successful installation
+			go func() {
+				time.Sleep(5 * time.Second)
+				os.Remove(exePath)
+			}()
+
 			return nil
 		}
 		time.Sleep(checkInterval)
@@ -282,22 +498,44 @@ func (a *App) installGitBashCLI() error {
 	}
 
 	fmt.Println("  Warning: Installation verification timed out.")
+
+	// Try to clean up installer file
+	os.Remove(exePath)
+
 	return nil
 }
 
 func (a *App) downloadFileCLI(filepath string, url string) error {
+	fmt.Printf("  Requesting URL: %s\n", url)
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	// Create transport with reasonable timeouts
+	transport := &http.Transport{
+		TLSHandshakeTimeout:   30 * time.Second,
+		ResponseHeaderTimeout: 30 * time.Second,
+		DisableKeepAlives:     true,
+	}
+
+	// Client with no overall timeout to allow large file downloads
+	client := &http.Client{
+		Transport: transport,
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("download failed: %v", err)
 	}
 	defer resp.Body.Close()
+
+	// Log final URL after redirects
+	if resp.Request.URL.String() != url {
+		fmt.Printf("  Redirected to: %s\n", resp.Request.URL.String())
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download failed with status: %s", resp.Status)
@@ -332,6 +570,9 @@ func (a *App) downloadFileCLI(filepath string, url string) error {
 			return err
 		}
 	}
+
+	// Ensure file is synced to disk before closing
+	out.Sync()
 
 	fmt.Println("  Download complete.")
 	return nil
@@ -421,20 +662,82 @@ func (a *App) CheckEnvironment(force bool) {
 			}
 		}
 
+		// ===== Check and Install Visual C++ Redistributable (needed by some tools like codex) =====
+		a.log(a.tr("Checking Visual C++ Redistributable installation..."))
+		if !a.isVCRedistInstalled() {
+			a.log(a.tr("Visual C++ Redistributable not found. Installing..."))
+			if err := a.installVCRedist(); err != nil {
+				a.log(a.tr("WARNING: Failed to install VC Redistributable: %v", err))
+				a.log(a.tr("Some tools like codex may not work properly without it."))
+				a.log(a.tr("You can install it manually from: https://aka.ms/vs/17/release/vc_redist.x64.exe"))
+			} else {
+				a.log(a.tr("Visual C++ Redistributable installed successfully."))
+			}
+		} else {
+			a.log(a.tr("Visual C++ Redistributable is already installed."))
+		}
+
 		a.log(a.tr("Checking Node.js installation..."))
 
 		// Check for node
 		nodeCmd := exec.Command("node", "--version")
 		nodeCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-		if err := nodeCmd.Run(); err != nil {
-			a.log(a.tr("Node.js not found. Downloading and installing..."))
-			if err := a.installNodeJS(); err != nil {
-				a.log(a.tr("Failed to install Node.js: ") + err.Error())
-				return
+		nodeInstalled := nodeCmd.Run() == nil
+
+		if !nodeInstalled {
+			// Check if installation is already in progress
+			a.installMutex.Lock()
+			if a.installingNode {
+				a.log(a.tr("Node.js installation already in progress, waiting for completion..."))
+				a.installMutex.Unlock()
+				// Wait for installation to complete (with timeout)
+				select {
+				case <-a.nodeInstallDone:
+					a.log(a.tr("Node.js installation completed by another process."))
+					nodeInstalled = true
+				case <-time.After(10 * time.Minute):
+					a.log(a.tr("ERROR: Timeout waiting for Node.js installation to complete."))
+					a.emitEvent("env-check-done")
+					return
+				}
+			} else {
+				a.installingNode = true
+				a.installMutex.Unlock()
+
+				a.log(a.tr("Node.js not found. Downloading and installing..."))
+				if err := a.installNodeJS(); err != nil {
+					a.log(a.tr("Failed to install Node.js: ") + err.Error())
+					a.installMutex.Lock()
+					a.installingNode = false
+					a.installMutex.Unlock()
+					a.emitEvent("env-check-done")
+					return
+				}
+				a.log(a.tr("Node.js installed successfully."))
+
+				a.installMutex.Lock()
+				a.installingNode = false
+				a.installMutex.Unlock()
+
+				// Signal that Node.js installation is complete
+				select {
+				case a.nodeInstallDone <- true:
+				default:
+					// Channel already has a value, skip
+				}
+
+				nodeInstalled = true
 			}
-			a.log(a.tr("Node.js installed successfully."))
 		} else {
-			a.log(a.tr("Node.js is installed."))
+			a.log(a.tr("Node.js is already installed."))
+			nodeInstalled = true
+		}
+
+		// Only proceed if Node.js is successfully installed
+		if !nodeInstalled {
+			a.log(a.tr("ERROR: Node.js is not available. Cannot proceed with AI tools installation."))
+			a.emitEvent("env-check-done")
+			return
 		}
 
 		// Update path for the current process anyway to ensure npm is found
@@ -448,17 +751,34 @@ func (a *App) CheckEnvironment(force bool) {
 			if _, err := os.Stat(`C:\Program Files\Git\cmd\git.exe`); err == nil {
 				gitFound = true
 			}
-			
+
 			if gitFound {
 				a.updatePathForGit()
 				a.log(a.tr("Git found in standard location."))
 			} else {
-				a.log(a.tr("Git not found. Downloading and installing..."))
-				if err := a.installGitBash(); err != nil {
-					a.log("Failed to install Git: " + err.Error())
+				// Check if installation is already in progress
+				a.installMutex.Lock()
+				if a.installingGit {
+					a.log(a.tr("Git installation already in progress, skipping..."))
+					a.installMutex.Unlock()
+					time.Sleep(5 * time.Second)
 				} else {
-					a.log(a.tr("Git installed successfully."))
-					a.updatePathForGit()
+					a.installingGit = true
+					a.installMutex.Unlock()
+
+					a.log(a.tr("Git not found. Downloading and installing..."))
+					if err := a.installGitBash(); err != nil {
+						a.log("Failed to install Git: " + err.Error())
+						a.installMutex.Lock()
+						a.installingGit = false
+						a.installMutex.Unlock()
+					} else {
+						a.log(a.tr("Git installed successfully."))
+						a.updatePathForGit()
+						a.installMutex.Lock()
+						a.installingGit = false
+						a.installMutex.Unlock()
+					}
 				}
 			}
 		} else {
@@ -471,17 +791,57 @@ func (a *App) CheckEnvironment(force bool) {
 		// 5. Check and Install AI Tools in private ~/.cceasy directory ONLY
 		tm := NewToolManager(a)
 
+		// IMPORTANT: Verify npm is available before installing tools
+		a.log(a.tr("Verifying npm is available before installing AI tools..."))
 
-		// Search for npm
-		npmExec, err := exec.LookPath("npm")
-		if err != nil {
-			npmExec, err = exec.LookPath("npm.cmd")
-		}
-		if npmExec == "" {
-			npmExec = "npm"
+		// Try multiple times to find and verify npm
+		var npmExec string
+		var npmReady bool
+		maxRetries := 10
+		retryDelay := 3 * time.Second
+
+		for i := 0; i < maxRetries; i++ {
+			if i > 0 {
+				a.log(a.tr("Retrying npm verification (attempt %d/%d)...", i+1, maxRetries))
+				time.Sleep(retryDelay)
+			}
+
+			// Try to find npm
+			var err error
+			npmExec, err = exec.LookPath("npm")
+			if err != nil {
+				npmExec, err = exec.LookPath("npm.cmd")
+			}
+
+			if err != nil || npmExec == "" {
+				a.log(a.tr("npm not found in PATH, updating environment..."))
+				a.updatePathForNode()
+				continue
+			}
+
+			// Test npm command
+			npmTestCmd := exec.Command(npmExec, "--version")
+			npmTestCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+			if err := npmTestCmd.Run(); err != nil {
+				a.log(a.tr("npm command test failed: %v", err))
+				continue
+			}
+
+			// npm is ready
+			npmReady = true
+			break
 		}
 
-		tools := []string{"claude", "gemini", "codex", "opencode", "codebuddy", "qoder", "iflow", "kiro"}
+		if !npmReady || npmExec == "" {
+			a.log(a.tr("ERROR: npm not found after %d attempts. Cannot install AI tools. Please ensure Node.js is properly installed.", maxRetries))
+			a.emitEvent("env-check-done")
+			return
+		}
+
+		a.log(a.tr("npm verified successfully: %s", npmExec))
+
+		// Install kilo first, then other tools
+		tools := []string{"kilo", "claude", "gemini", "codex", "opencode", "codebuddy", "qoder", "iflow"}
 
 		for _, tool := range tools {
 			a.log(a.tr("Checking %s in private directory...", tool))
@@ -507,7 +867,7 @@ func (a *App) CheckEnvironment(force bool) {
 
 				a.log(a.tr("%s found in private directory at %s (version: %s).", tool, status.Path, status.Version))
 				// Check for updates ONLY for tools in private directory
-				if tool == "codex" || tool == "opencode" || tool == "codebuddy" || tool == "qoder" || tool == "iflow" || tool == "gemini" || tool == "claude" || tool == "kiro" {
+				if tool == "codex" || tool == "opencode" || tool == "codebuddy" || tool == "qoder" || tool == "iflow" || tool == "gemini" || tool == "claude" || tool == "kilo" {
 					a.log(a.tr("Checking for %s updates in private directory...", tool))
 					latest, err := a.getLatestNpmVersion(npmExec, tm.GetPackageName(tool))
 					if err == nil && latest != "" && latest != status.Version {
@@ -551,11 +911,30 @@ func (a *App) installNodeJS() error {
 	// Using a more recent version
 	nodeVersion := RequiredNodeVersion
 	fileName := fmt.Sprintf("node-v%s-%s.msi", nodeVersion, nodeArch)
-	
-	downloadURL := fmt.Sprintf("https://nodejs.org/dist/v%s/%s", nodeVersion, fileName)
+
+	// Official URL
+	officialURL := fmt.Sprintf("https://nodejs.org/dist/v%s/%s", nodeVersion, fileName)
+	downloadURL := officialURL
+
+	// Try China mirror first for Chinese users (only for x64 as arm64 might not be synced)
 	if strings.HasPrefix(strings.ToLower(a.CurrentLanguage), "zh") && nodeArch != "arm64" {
-		// Use a mirror in China for faster download (only for x64 as arm64 might not be synced)
-		downloadURL = fmt.Sprintf("https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/v%s/%s", nodeVersion, fileName)
+		mirrorURL := fmt.Sprintf("https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/v%s/%s", nodeVersion, fileName)
+		a.log(a.tr("Trying China mirror for faster download..."))
+
+		// Check if mirror has this version
+		client := &http.Client{Timeout: 10 * time.Second}
+		headReq, _ := http.NewRequest("HEAD", mirrorURL, nil)
+		headReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+		headResp, err := client.Do(headReq)
+		if err == nil && headResp.StatusCode == http.StatusOK {
+			downloadURL = mirrorURL
+			a.log(a.tr("Using China mirror: %s", mirrorURL))
+		} else {
+			a.log(a.tr("China mirror not available for this version, falling back to official source"))
+		}
+		if headResp != nil {
+			headResp.Body.Close()
+		}
 	}
 
 	a.log(a.tr("Downloading Node.js %s for %s...", nodeVersion, nodeArch))
@@ -580,7 +959,9 @@ func (a *App) installNodeJS() error {
 	if err := a.downloadFile(msiPath, downloadURL); err != nil {
 		return fmt.Errorf("error downloading Node.js installer: %w", err)
 	}
-	defer os.Remove(msiPath)
+
+	// Wait a moment to ensure file is fully written and not locked
+	time.Sleep(500 * time.Millisecond)
 
 	a.log(a.tr("Installing Node.js (this may take a moment, please grant administrator permission if prompted)..."))
 
@@ -617,7 +998,38 @@ func (a *App) installNodeJS() error {
 	for elapsed < maxWaitTime {
 		if _, err := os.Stat(nodePath); err == nil {
 			a.log(a.tr("Node.js installation completed successfully."))
+
+			// Wait for npm to be available as well
+			a.log(a.tr("Verifying npm availability..."))
+			npmReady := false
+			npmWaitTime := 30 * time.Second
+			npmCheckInterval := 1 * time.Second
+			npmElapsed := time.Duration(0)
+
+			for npmElapsed < npmWaitTime {
+				npmCmd := exec.Command("npm", "--version")
+				npmCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+				if err := npmCmd.Run(); err == nil {
+					a.log(a.tr("npm is ready."))
+					npmReady = true
+					break
+				}
+				time.Sleep(npmCheckInterval)
+				npmElapsed += npmCheckInterval
+			}
+
+			if !npmReady {
+				a.log(a.tr("Warning: npm verification timed out, but continuing anyway..."))
+			}
+
 			time.Sleep(2 * time.Second) // Additional wait for finalization
+
+			// Clean up installer file after successful installation
+			go func() {
+				time.Sleep(5 * time.Second) // Wait a bit more before cleanup
+				os.Remove(msiPath)
+			}()
+
 			return nil
 		}
 		time.Sleep(checkInterval)
@@ -626,6 +1038,9 @@ func (a *App) installNodeJS() error {
 
 	// If we reach here, installation might have failed or taken too long
 	a.log(a.tr("Warning: Node.js installation verification timed out. Please check if Node.js was installed correctly."))
+
+	// Try to clean up installer file
+	os.Remove(msiPath)
 
 	return nil
 }
@@ -654,10 +1069,171 @@ func (a *App) updatePathForGit() {
 	}
 }
 
+// isVCRedistInstalled checks if Visual C++ Redistributable is already installed
+func (a *App) isVCRedistInstalled() bool {
+	// Check registry for VC++ Redistributable installation
+	// HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64 or arm64
+	arch := os.Getenv("PROCESSOR_ARCHITECTURE")
+	var regPath string
+
+	if arch == "ARM64" || os.Getenv("PROCESSOR_ARCHITEW6432") == "ARM64" {
+		regPath = `SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\ARM64`
+	} else {
+		regPath = `SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64`
+	}
+
+	a.log(fmt.Sprintf("VC Redist check: Checking registry path: HKLM\\%s", regPath))
+
+	// Use reg query to check if the key exists
+	cmd := exec.Command("reg", "query", fmt.Sprintf("HKLM\\%s", regPath), "/v", "Installed")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	output, err := cmd.Output()
+
+	if err != nil {
+		a.log(fmt.Sprintf("VC Redist check: Registry key not found or error: %v", err))
+		return false
+	}
+
+	outputStr := string(output)
+	a.log(fmt.Sprintf("VC Redist check: Registry output: %s", outputStr))
+
+	if strings.Contains(outputStr, "0x1") {
+		// Extract version if available
+		if strings.Contains(outputStr, "Version") {
+			lines := strings.Split(outputStr, "\n")
+			for _, line := range lines {
+				if strings.Contains(line, "Version") && strings.Contains(line, "REG_SZ") {
+					parts := strings.Fields(line)
+					if len(parts) >= 3 {
+						version := parts[len(parts)-1]
+						a.log(fmt.Sprintf("VC Redist check: Found installed version: %s", version))
+					}
+				}
+			}
+		}
+		a.log("VC Redist check: Found installed (0x1)")
+		return true
+	}
+
+	a.log("VC Redist check: Not installed or value not 0x1")
+	return false
+}
+
+// installVCRedist installs Visual C++ Redistributable for tools like codex
+func (a *App) installVCRedist() error {
+	arch := os.Getenv("PROCESSOR_ARCHITECTURE")
+	var downloadURL string
+	var fileName string
+
+	if arch == "ARM64" || os.Getenv("PROCESSOR_ARCHITEW6432") == "ARM64" {
+		downloadURL = "https://aka.ms/vc14/vc_redist.arm64.exe"
+		fileName = "vc_redist.arm64.exe"
+	} else {
+		downloadURL = "https://aka.ms/vc14/vc_redist.x64.exe"
+		fileName = "vc_redist.x64.exe"
+	}
+
+	fmt.Printf("  → Downloading from: %s\n", downloadURL)
+	a.log(a.tr("Downloading Visual C++ Redistributable..."))
+
+	tempDir := os.TempDir()
+	exePath := filepath.Join(tempDir, fileName)
+	fmt.Printf("  → Download path: %s\n", exePath)
+
+	// Download
+	if err := a.downloadFile(exePath, downloadURL); err != nil {
+		errMsg := fmt.Sprintf("failed to download VC Redist: %v", err)
+		fmt.Printf("  ✗ %s\n", errMsg)
+		return fmt.Errorf(errMsg)
+	}
+
+	fmt.Println("  ✓ Download completed")
+
+	// Wait for file to be fully written
+	time.Sleep(500 * time.Millisecond)
+
+	// Verify file exists
+	if _, err := os.Stat(exePath); os.IsNotExist(err) {
+		errMsg := "downloaded file not found"
+		fmt.Printf("  ✗ %s\n", errMsg)
+		return fmt.Errorf(errMsg)
+	}
+
+	fmt.Println("  → Starting installation (requires admin privileges)...")
+	a.log(a.tr("Installing Visual C++ Redistributable..."))
+	a.log(a.tr("You may be prompted for administrator permission. Please accept to continue."))
+
+	// Use ShellExecute with "runas" verb to request admin privileges
+	shell32 := syscall.NewLazyDLL("shell32.dll")
+	shellExecute := shell32.NewProc("ShellExecuteW")
+
+	verb := syscall.StringToUTF16Ptr("runas")
+	file := syscall.StringToUTF16Ptr(exePath)
+	// /install for install, /quiet for no UI, /norestart to not restart
+	params := syscall.StringToUTF16Ptr("/install /quiet /norestart")
+	dir := syscall.StringToUTF16Ptr("")
+
+	fmt.Printf("  → Installer command: %s /install /quiet /norestart\n", exePath)
+
+	ret, _, _ := shellExecute.Call(
+		0,
+		uintptr(unsafe.Pointer(verb)),
+		uintptr(unsafe.Pointer(file)),
+		uintptr(unsafe.Pointer(params)),
+		uintptr(unsafe.Pointer(dir)),
+		uintptr(syscall.SW_SHOW),
+	)
+
+	if ret <= 32 {
+		errMsg := fmt.Sprintf("failed to launch VC Redist installer with admin privileges (error code: %d)", ret)
+		fmt.Printf("  ✗ %s\n", errMsg)
+		return fmt.Errorf(errMsg)
+	}
+
+	fmt.Println("  ✓ Installer launched successfully")
+
+	// Wait for installation to complete and verify
+	fmt.Println("  → Waiting for installation to complete...")
+	a.log(a.tr("Waiting for installation to complete..."))
+
+	// Wait and verify installation with retries
+	maxRetries := 10
+	installed := false
+	for i := 0; i < maxRetries; i++ {
+		time.Sleep(5 * time.Second) // Wait 5 seconds between checks
+
+		if a.isVCRedistInstalled() {
+			installed = true
+			fmt.Println("  ✓ Installation verified successfully")
+			a.log(a.tr("✓ Visual C++ Redistributable installed and verified successfully."))
+			break
+		}
+
+		if i < maxRetries-1 {
+			fmt.Printf("  → Still waiting... (%d/%d)\n", i+2, maxRetries)
+			a.log(a.tr("Waiting for installation to complete... (%d/%d)", i+2, maxRetries))
+		}
+	}
+
+	// Clean up installer file
+	go func() {
+		time.Sleep(5 * time.Second)
+		os.Remove(exePath)
+	}()
+
+	if !installed {
+		errMsg := fmt.Sprintf("VC Redistributable installation verification failed after %d attempts", maxRetries)
+		fmt.Printf("  ✗ %s\n", errMsg)
+		return fmt.Errorf(errMsg)
+	}
+
+	return nil
+}
+
 func (a *App) installGitBash() error {
-	gitVersion := "2.47.1"
-	// git-for-windows versioning can be tricky. v2.47.1.windows.1
-	fullVersion := "v2.47.1.windows.1"
+	gitVersion := "2.52.0"
+	// git-for-windows versioning can be tricky. v2.52.0.windows.1
+	fullVersion := "v2.52.0.windows.1"
 	fileName := fmt.Sprintf("Git-%s-64-bit.exe", gitVersion)
 	
 	downloadURL := fmt.Sprintf("https://github.com/git-for-windows/git/releases/download/%s/%s", fullVersion, fileName)
@@ -673,7 +1249,9 @@ func (a *App) installGitBash() error {
 	if err := a.downloadFile(exePath, downloadURL); err != nil {
 		return fmt.Errorf("error downloading Git installer: %w", err)
 	}
-	defer os.Remove(exePath)
+
+	// Wait a moment to ensure file is fully written and not locked
+	time.Sleep(500 * time.Millisecond)
 
 	a.log(a.tr("Installing Git (this may take a moment, please grant administrator permission if prompted)..."))
 
@@ -683,7 +1261,9 @@ func (a *App) installGitBash() error {
 
 	verb := syscall.StringToUTF16Ptr("runas")
 	file := syscall.StringToUTF16Ptr(exePath)
-	params := syscall.StringToUTF16Ptr("/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS")
+	// IMPORTANT: Use /DIR parameter to specify install directory explicitly
+	// This helps avoid permission issues with default directory
+	params := syscall.StringToUTF16Ptr(`/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /DIR="C:\Program Files\Git"`)
 	dir := syscall.StringToUTF16Ptr("")
 
 	ret, _, _ := shellExecute.Call(
@@ -696,7 +1276,19 @@ func (a *App) installGitBash() error {
 	)
 
 	if ret <= 32 {
-		return fmt.Errorf("failed to launch Git installer with admin privileges (error code: %d). Please run the application as administrator.", ret)
+		// Provide detailed error message based on return code
+		var errMsg string
+		switch ret {
+		case 5:
+			errMsg = "Access denied. Please ensure you have administrator privileges."
+		case 8:
+			errMsg = "Insufficient memory to complete the operation."
+		case 31:
+			errMsg = "No file association for installer executable."
+		default:
+			errMsg = fmt.Sprintf("Unknown error (code: %d). Please try installing Git manually from https://git-scm.com/", ret)
+		}
+		return fmt.Errorf("failed to launch Git installer: %s", errMsg)
 	}
 
 	// Wait for installation to complete by checking if git.exe exists
@@ -710,6 +1302,13 @@ func (a *App) installGitBash() error {
 		if _, err := os.Stat(gitPath); err == nil {
 			a.log(a.tr("Git installation completed successfully."))
 			time.Sleep(2 * time.Second) // Additional wait for finalization
+
+			// Clean up installer file after successful installation
+			go func() {
+				time.Sleep(5 * time.Second) // Wait a bit more before cleanup
+				os.Remove(exePath)
+			}()
+
 			return nil
 		}
 		time.Sleep(checkInterval)
@@ -719,12 +1318,15 @@ func (a *App) installGitBash() error {
 	// If we reach here, installation might have failed or taken too long
 	a.log(a.tr("Warning: Git installation verification timed out. Please check if Git was installed correctly."))
 
+	// Try to clean up installer file
+	os.Remove(exePath)
+
 	return nil
 }
 
 func (a *App) downloadFile(filepath string, url string) error {
 	a.log(fmt.Sprintf("Requesting URL: %s", url))
-	
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create download request: %w", err)
@@ -732,15 +1334,31 @@ func (a *App) downloadFile(filepath string, url string) error {
 	// Add User-Agent to avoid 403 Forbidden from some mirrors/CDNs
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-	// Use a client with timeout for the connection phase
-	client := &http.Client{
-		Timeout: 30 * time.Second,
+	// Create transport with reasonable timeouts
+	transport := &http.Transport{
+		TLSHandshakeTimeout:   30 * time.Second,
+		ResponseHeaderTimeout: 30 * time.Second,
+		DisableKeepAlives:     true,
 	}
+
+	// Client with no overall timeout (handled by transport timeouts)
+	// This allows large file downloads to complete
+	client := &http.Client{
+		Transport: transport,
+		// CheckRedirect follows redirects automatically (default behavior)
+		// aka.ms URLs redirect to the actual download location
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("network error during download: %v. Please check your internet connection or firewall settings.", err)
 	}
 	defer resp.Body.Close()
+
+	// Log final URL after redirects
+	if resp.Request.URL.String() != url {
+		a.log(fmt.Sprintf("Redirected to: %s", resp.Request.URL.String()))
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download failed with status: %s. The file might not be available on this server.", resp.Status)
@@ -764,7 +1382,7 @@ func (a *App) downloadFile(filepath string, url string) error {
 			downloaded += int64(n)
 			if size > 0 && time.Since(lastReport) > 500*time.Millisecond {
 				percent := float64(downloaded) / float64(size) * 100
-				a.log(a.tr("Downloading Node.js (%.1f%%): %d/%d bytes", percent, downloaded, size))
+				a.log(a.tr("Downloading (%.1f%%): %d/%d bytes", percent, downloaded, size))
 				lastReport = time.Now()
 			}
 		}
@@ -775,6 +1393,9 @@ func (a *App) downloadFile(filepath string, url string) error {
 			return fmt.Errorf("interrupted download: %v. The connection was lost during data transfer.", err)
 		}
 	}
+
+	// Ensure file is synced to disk before closing
+	out.Sync()
 
 	return nil
 }
@@ -866,8 +1487,11 @@ func (a *App) findSh() string {
 
 func (a *App) platformLaunch(binaryName string, yoloMode bool, adminMode bool, pythonEnv string, projectDir string, env map[string]string, modelId string) {
 	tm := NewToolManager(a)
+	a.log(fmt.Sprintf("platformLaunch: Looking for tool '%s'", binaryName))
 	status := tm.GetToolStatus(binaryName)
-	
+
+	a.log(fmt.Sprintf("Tool status - Installed: %v, Path: %s, Version: %s", status.Installed, status.Path, status.Version))
+
 	binaryPath := ""
 	if status.Installed {
 		binaryPath = status.Path
@@ -903,6 +1527,9 @@ func (a *App) platformLaunch(binaryName string, yoloMode bool, adminMode bool, p
 			flag = "-y"
 		case "iflow":
 			flag = "-y"
+		case "kilo":
+			// kilo does not support yolo mode, no flag needed
+			flag = ""
 		case "qodercli", "qoder":
 			flag = "--yolo"
 		}
@@ -921,10 +1548,21 @@ func (a *App) platformLaunch(binaryName string, yoloMode bool, adminMode bool, p
 		batchContent += fmt.Sprintf("set %s=%s\r\n", k, v)
 	}
 
-	// Add local tools directory to PATH
+	// Add Node.js paths to PATH (same as updatePathForNode)
 	home, _ := os.UserHomeDir()
 	localToolPath := filepath.Join(home, ".cceasy", "tools")
-	batchContent += fmt.Sprintf("set PATH=%s;%%PATH%%\r\n", localToolPath)
+	nodePath := `C:\Program Files\nodejs`
+	npmPath := filepath.Join(os.Getenv("AppData"), "npm")
+
+	// Add Git paths to PATH for tools that need sh (like codex)
+	gitCmdPath := `C:\Program Files\Git\cmd`
+	gitBinPath := `C:\Program Files\Git\bin`
+	gitUsrBinPath := `C:\Program Files\Git\usr\bin`
+
+	// Set PATH with all necessary directories
+	// Git paths are added to ensure sh, bash, and other Git utilities are available
+	batchContent += fmt.Sprintf("set PATH=%s;%s;%s;%s;%s;%s;%%PATH%%\r\n",
+		localToolPath, npmPath, nodePath, gitCmdPath, gitBinPath, gitUsrBinPath)
 
 	// Activate Python environment if specified
 	if pythonEnv != "" && pythonEnv != "None (Default)" {
@@ -949,9 +1587,57 @@ func (a *App) platformLaunch(binaryName string, yoloMode bool, adminMode bool, p
 
 	// Launch the tool
 	batchContent += fmt.Sprintf("echo Launching %s...\r\n", binaryName)
-	
+	batchContent += "echo.\r\n"
+
 	ext := strings.ToLower(filepath.Ext(binaryPath))
-	if ext == ".ps1" {
+
+	// Special handling: For npm-installed tools, bypass wrappers and call node directly
+	// This avoids wrapper script issues and DLL loading problems
+	if ext == ".cmd" || ext == ".bat" {
+		// Check if this is an npm package wrapper in .cceasy/tools
+		if strings.Contains(binaryPath, filepath.Join(home, ".cceasy", "tools")) {
+			// Try to find the actual JavaScript entry point
+			var jsEntryPoint string
+			tm := NewToolManager(a)
+			packageName := tm.GetPackageName(binaryName)
+			if packageName != "" {
+				// Construct path to the package's main entry point
+				pkgDir := filepath.Join(home, ".cceasy", "tools", "node_modules", packageName)
+
+				// Common entry points for CLI tools
+				// Check common patterns in priority order
+				possibleEntries := []string{
+					filepath.Join(pkgDir, "index.js"),
+					filepath.Join(pkgDir, "cli.js"),           // claude-code uses this
+					filepath.Join(pkgDir, "dist", "index.js"), // gemini-cli uses this
+					filepath.Join(pkgDir, "bin", "index.js"),
+					filepath.Join(pkgDir, "bin", binaryName+".js"), // codex.js, etc.
+					filepath.Join(pkgDir, "lib", "index.js"),
+					filepath.Join(pkgDir, "src", "index.js"),
+				}
+
+				for _, entry := range possibleEntries {
+					if _, err := os.Stat(entry); err == nil {
+						jsEntryPoint = entry
+						break
+					}
+				}
+			}
+
+			// If we found the JS entry point, call node directly
+			if jsEntryPoint != "" {
+				a.log(fmt.Sprintf("Using direct node invocation with entry point: %s", jsEntryPoint))
+				batchContent += fmt.Sprintf("node \"%s\"%s\r\n", jsEntryPoint, cmdArgs)
+			} else {
+				// Fallback to calling the wrapper with 'call'
+				a.log(fmt.Sprintf("No JS entry point found, using wrapper script with 'call': %s", binaryPath))
+				batchContent += fmt.Sprintf("call \"%s\"%s\r\n", binaryPath, cmdArgs)
+			}
+		} else {
+			// External .cmd/.bat file, use 'call'
+			batchContent += fmt.Sprintf("call \"%s\"%s\r\n", binaryPath, cmdArgs)
+		}
+	} else if ext == ".ps1" {
 		batchContent += fmt.Sprintf("powershell -ExecutionPolicy Bypass -File \"%s\"%s\r\n", binaryPath, cmdArgs)
 	} else if ext == ".js" {
 		batchContent += fmt.Sprintf("node \"%s\"%s\r\n", binaryPath, cmdArgs)
@@ -963,14 +1649,22 @@ func (a *App) platformLaunch(binaryName string, yoloMode bool, adminMode bool, p
 	} else {
 		batchContent += fmt.Sprintf("\"%s\"%s\r\n", binaryPath, cmdArgs)
 	}
-	
-	// Pause on error or normal exit to keep window open
-	batchContent += "if errorlevel 1 (\r\n"
+
+	// Capture exit code and show status
+	batchContent += "set TOOL_EXIT_CODE=%errorlevel%\r\n"
+	batchContent += "echo.\r\n"
+	batchContent += "if %TOOL_EXIT_CODE% neq 0 (\r\n"
+	batchContent += "  echo ========================================\r\n"
+	batchContent += fmt.Sprintf("  echo %s exited with error code %%TOOL_EXIT_CODE%%\r\n", binaryName)
+	batchContent += "  echo ========================================\r\n"
 	batchContent += "  echo.\r\n"
-	batchContent += "  echo Process exited with error code %errorlevel%.\r\n"
-	batchContent += "  pause\r\n"
+	batchContent += "  echo Press any key to close this window...\r\n"
+	batchContent += "  pause >nul\r\n"
 	batchContent += ") else (\r\n"
-	batchContent += "  REM Keep window open for TUI applications like kilo\r\n"
+	batchContent += "  echo ========================================\r\n"
+	batchContent += fmt.Sprintf("  echo %s completed successfully\r\n", binaryName)
+	batchContent += "  echo ========================================\r\n"
+	batchContent += "  REM Keep window open for TUI applications\r\n"
 	batchContent += "  REM Window will stay open due to cmd /k\r\n"
 	batchContent += ")\r\n"
 
@@ -1016,17 +1710,85 @@ func (a *App) platformLaunch(binaryName string, yoloMode bool, adminMode bool, p
 		}
 	} else {
 		// Normal launch
-		cmdLine := fmt.Sprintf(`cmd /c start "AICoder - %s" /d "%s" cmd /k "%s"`, binaryName, projectDir, tempBatchPath)
-		
-		cmd := exec.Command("cmd")
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			CmdLine:    cmdLine,
-			HideWindow: true,
-		}
+		// For tools like codex that require TTY, create special batch file
+		if binaryName == "codex" || binaryName == "openai" {
+			// Create a specialized batch file for codex with proper TTY handling
+			codexBatchContent := "@echo off\r\n"
+			codexBatchContent += "chcp 65001 > nul\r\n"
+			codexBatchContent += fmt.Sprintf("cd /d \"%s\"\r\n", projectDir)
 
-		if err := cmd.Start(); err != nil {
-			a.log("Error launching tool: " + err.Error())
-			a.ShowMessage("Launch Error", "Failed to start process: "+err.Error())
+			// Set environment variables
+			for k, v := range env {
+				codexBatchContent += fmt.Sprintf("set %s=%s\r\n", k, v)
+			}
+			codexBatchContent += fmt.Sprintf("set PATH=%s;%%PATH%%\r\n", localToolPath)
+
+			// Launch codex directly without extra quoting
+			codexBatchContent += fmt.Sprintf("echo Launching %s...\r\n", binaryName)
+			codexBatchContent += "echo.\r\n"
+			codexBatchContent += fmt.Sprintf("call \"%s\"%s\r\n", binaryPath, cmdArgs)
+
+			// Capture exit code and show status
+			codexBatchContent += "set TOOL_EXIT_CODE=%errorlevel%\r\n"
+			codexBatchContent += "echo.\r\n"
+			codexBatchContent += "if %TOOL_EXIT_CODE% neq 0 (\r\n"
+			codexBatchContent += "  echo ========================================\r\n"
+			codexBatchContent += fmt.Sprintf("  echo %s exited with error code %%TOOL_EXIT_CODE%%\r\n", binaryName)
+			codexBatchContent += "  echo ========================================\r\n"
+			codexBatchContent += "  echo.\r\n"
+			codexBatchContent += "  echo Press any key to close this window...\r\n"
+			codexBatchContent += "  pause >nul\r\n"
+			codexBatchContent += ") else (\r\n"
+			codexBatchContent += "  echo ========================================\r\n"
+			codexBatchContent += fmt.Sprintf("  echo %s completed successfully\r\n", binaryName)
+			codexBatchContent += "  echo ========================================\r\n"
+			codexBatchContent += "  REM Keep window open for interactive use\r\n"
+			codexBatchContent += ")\r\n"
+
+			// Create temporary batch file for codex
+			codexBatchPath := filepath.Join(os.TempDir(), fmt.Sprintf("aicoder_codex_%d.bat", time.Now().UnixNano()))
+			if err := os.WriteFile(codexBatchPath, []byte(codexBatchContent), 0644); err != nil {
+				a.log("Error creating codex batch file: " + err.Error())
+				a.ShowMessage("Launch Error", "Failed to create temporary batch file")
+				return
+			}
+
+			a.log(fmt.Sprintf("Launching %s with TTY batch mode", binaryName))
+
+			// Clean up batch file after delay
+			go func() {
+				time.Sleep(10 * time.Second)
+				os.Remove(codexBatchPath)
+			}()
+
+			// Launch using the batch file
+			cmdLine := fmt.Sprintf(`cmd /c start "AICoder - %s" /d "%s" cmd /k "%s"`,
+				binaryName, projectDir, codexBatchPath)
+
+			cmd := exec.Command("cmd")
+			cmd.SysProcAttr = &syscall.SysProcAttr{
+				CmdLine:    cmdLine,
+				HideWindow: true,
+			}
+
+			if err := cmd.Start(); err != nil {
+				a.log("Error launching tool: " + err.Error())
+				a.ShowMessage("Launch Error", "Failed to start process: "+err.Error())
+			}
+		} else {
+			// Use batch file for other tools
+			cmdLine := fmt.Sprintf(`cmd /c start "AICoder - %s" /d "%s" cmd /k "%s"`, binaryName, projectDir, tempBatchPath)
+
+			cmd := exec.Command("cmd")
+			cmd.SysProcAttr = &syscall.SysProcAttr{
+				CmdLine:    cmdLine,
+				HideWindow: true,
+			}
+
+			if err := cmd.Start(); err != nil {
+				a.log("Error launching tool: " + err.Error())
+				a.ShowMessage("Launch Error", "Failed to start process: "+err.Error())
+			}
 		}
 	}
 }
@@ -1139,31 +1901,18 @@ func (a *App) syncToSystemEnv(config AppConfig) {
 }
 
 func createVersionCmd(path string) *exec.Cmd {
-	cmd := exec.Command("cmd")
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CmdLine:    fmt.Sprintf(`cmd /c ""%s" --version"`, path),
-		HideWindow: true,
-	}
+	cmd := exec.Command(path, "--version")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	return cmd
 }
 
 
 
 func createNpmInstallCmd(npmPath string, args []string) *exec.Cmd {
-	quotedArgs := make([]string, len(args))
-	for i, arg := range args {
-		if strings.ContainsAny(arg, " &^") {
-			quotedArgs[i] = fmt.Sprintf(`"%s"`, arg)
-		} else {
-			quotedArgs[i] = arg
-		}
-	}
-	cmdLine := fmt.Sprintf(`cmd /c ""%s" %s"`, npmPath, strings.Join(quotedArgs, " "))
-	cmd := exec.Command("cmd")
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CmdLine:    cmdLine,
-		HideWindow: true,
-	}
+	// Use exec.Command directly with npm path and arguments
+	// This is more reliable than manually constructing CmdLine
+	cmd := exec.Command(npmPath, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	return cmd
 }
 
@@ -1271,11 +2020,8 @@ func getWindowsVersionHidden() string {
 }
 
 func createUpdateCmd(path string) *exec.Cmd {
-	cmd := exec.Command("cmd")
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CmdLine:    fmt.Sprintf(`cmd /c ""%s" update"`, path),
-		HideWindow: true,
-	}
+	cmd := exec.Command(path, "update")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	return cmd
 }
 

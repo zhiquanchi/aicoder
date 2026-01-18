@@ -8,7 +8,7 @@ import codexIcon from './assets/images/Codex.png';
 import geminiIcon from './assets/images/gemincli.png';
 import iflowIcon from './assets/images/iflow.png';
 import opencodeIcon from './assets/images/opencode.png';
-import kiroIcon from './assets/images/kiro.png';
+import kiloIcon from './assets/images/kilo.png';
 import qoderIcon from './assets/images/qodercli.png';
 import { CheckToolsStatus, InstallTool, LoadConfig, SaveConfig, CheckEnvironment, ResizeWindow, WindowHide, LaunchTool, SelectProjectDir, SetLanguage, GetUserHomeDir, CheckUpdate, ShowMessage, ReadBBS, ReadTutorial, ReadThanks, ClipboardGetText, ListPythonEnvironments, PackLog, ShowItemInFolder, GetSystemInfo, OpenSystemUrl, DownloadUpdate, CancelDownload, LaunchInstallerAndExit, ListSkills, ListSkillsWithInstallStatus, AddSkill, DeleteSkill, SelectSkillFile, GetSkillsDir, SetEnvCheckInterval, GetEnvCheckInterval, ShouldCheckEnvironment, UpdateLastEnvCheckTime, InstallDefaultMarketplace, InstallSkill } from "../wailsjs/go/main/App";
 import { EventsOn, EventsOff, BrowserOpenURL, Quit } from "../wailsjs/runtime";
@@ -117,8 +117,8 @@ const translations: any = {
         "qoderDesc": "Qoder AI Programming Assistant",
         "iflow": "iFlow CLI",
         "iflowDesc": "iFlow AI Programming Assistant",
-        "kiro": "Kilo Code CLI",
-        "kiroDesc": "Kilo Code AI Programming Assistant",
+        "kilo": "Kilo Code CLI",
+        "kiloDesc": "Kilo Code AI Programming Assistant",
         "bugReport": "Problem Feedback",
         "businessCooperation": "Business: WeChat znsoft",
         "original": "Original",
@@ -220,7 +220,11 @@ const translations: any = {
         "placeholderZip": "Select .zip file",
         "cannotDeleteSystemSkill": "System skill package cannot be deleted.",
         "systemDefault": "System Default",
-        "envCheckTitle": "AICoder Environment Setup"
+        "envCheckTitle": "AICoder Environment Setup",
+        "envCheckExitWarningTitle": "Warning: Exit During Environment Setup",
+        "envCheckExitWarningMessage": "Exiting now will result in incomplete environment setup, and the application may not function properly.\n\nOnly exit in extreme cases (such as infinite loops or unresponsive behavior).\n\nAre you sure you want to exit?",
+        "envCheckExitConfirm": "Yes, Exit",
+        "envCheckExitCancel": "No, Continue Setup"
     },
     "zh-Hans": {
         "title": "AICoder",
@@ -302,8 +306,8 @@ const translations: any = {
         "qoderDesc": "Qoder AI 辅助编程",
         "iflow": "iFlow CLI",
         "iflowDesc": "iFlow AI 辅助编程",
-        "kiro": "Kilo Code CLI",
-        "kiroDesc": "Kilo Code AI 辅助编程",
+        "kilo": "Kilo Code CLI",
+        "kiloDesc": "Kilo Code AI 辅助编程",
         "bugReport": "问题反馈",
         "businessCooperation": "商业合作：微信 znsoft",
         "original": "原厂",
@@ -404,7 +408,11 @@ const translations: any = {
         "placeholderZip": "选择 .zip 文件",
         "cannotDeleteSystemSkill": "系统技能包不能删除。",
         "systemDefault": "系统默认",
-        "envCheckTitle": "AICoder 运行环境检测安装"
+        "envCheckTitle": "AICoder 运行环境检测安装",
+        "envCheckExitWarningTitle": "警告：退出环境安装",
+        "envCheckExitWarningMessage": "退出将导致环境安装不完整，程序无法正常运行。\n\n只有在程序死循环等极端情况下才建议退出。\n\n确定要退出吗？",
+        "envCheckExitConfirm": "是的，退出",
+        "envCheckExitCancel": "否，继续安装"
     },
     "zh-Hant": {
         "title": "AICoder",
@@ -484,8 +492,8 @@ const translations: any = {
         "qoderDesc": "Qoder AI 輔助編程",
         "iflow": "iFlow CLI",
         "iflowDesc": "iFlow AI 輔助編程",
-        "kiro": "Kilo Code CLI",
-        "kiroDesc": "Kilo Code AI 輔助編程",
+        "kilo": "Kilo Code CLI",
+        "kiloDesc": "Kilo Code AI 輔助編程",
         "bugReport": "問題反饋",
         "businessCooperation": "商業合作：微信 znsoft",
         "original": "原廠",
@@ -1091,7 +1099,12 @@ function App() {
         // Environment Check Logic
         const logHandler = (msg: string) => {
             setEnvLogs(prev => [...prev, msg]);
-            if (msg.toLowerCase().includes("failed") || msg.toLowerCase().includes("error") || msg.includes(".cceasy")) {
+            // Only show logs panel for serious errors (installation failures, download failures)
+            const lowerMsg = msg.toLowerCase();
+            const isSerialError = (lowerMsg.includes("failed") || lowerMsg.includes("error")) &&
+                                  (lowerMsg.includes("install") || lowerMsg.includes("download") ||
+                                   lowerMsg.includes("npm") || lowerMsg.includes("node"));
+            if (isSerialError) {
                 setShowLogs(true);
             }
         };
@@ -1196,7 +1209,7 @@ function App() {
 
                 // Keep track of the last active tool for settings/launch logic
                 const lastActiveTool = cfg.active_tool || "claude";
-                if (lastActiveTool === 'claude' || lastActiveTool === 'gemini' || lastActiveTool === 'codex' || lastActiveTool === 'opencode' || lastActiveTool === 'codebuddy' || lastActiveTool === 'qoder' || lastActiveTool === 'iflow' || lastActiveTool === 'kiro') {
+                if (lastActiveTool === 'claude' || lastActiveTool === 'gemini' || lastActiveTool === 'codex' || lastActiveTool === 'opencode' || lastActiveTool === 'codebuddy' || lastActiveTool === 'qoder' || lastActiveTool === 'iflow' || lastActiveTool === 'kilo') {
                     setActiveTool(lastActiveTool);
                 }
 
@@ -1208,7 +1221,7 @@ function App() {
                     if (idx !== -1) setActiveTab(idx);
 
                     // Check if any model has an API key configured for the active tool
-                    if (lastActiveTool === 'claude' || lastActiveTool === 'gemini' || lastActiveTool === 'codex' || lastActiveTool === 'opencode' || lastActiveTool === 'codebuddy' || lastActiveTool === 'qoder' || lastActiveTool === 'iflow' || lastActiveTool === 'kiro') {
+                    if (lastActiveTool === 'claude' || lastActiveTool === 'gemini' || lastActiveTool === 'codex' || lastActiveTool === 'opencode' || lastActiveTool === 'codebuddy' || lastActiveTool === 'qoder' || lastActiveTool === 'iflow' || lastActiveTool === 'kilo') {
                         const hasAnyApiKey = toolCfg.models.some((m: any) => m.api_key && m.api_key.trim() !== "");
                         if (!hasAnyApiKey) {
                             setShowModelSettings(true);
@@ -1226,7 +1239,7 @@ function App() {
             // Sync with tray menu changes
             const tool = cfg.active_tool || "message";
             setNavTab(tool);
-            if (tool === 'claude' || tool === 'gemini' || tool === 'codex' || tool === 'opencode' || tool === 'codebuddy' || tool === 'iflow' || tool === 'kiro') {
+            if (tool === 'claude' || tool === 'gemini' || tool === 'codex' || tool === 'opencode' || tool === 'codebuddy' || tool === 'iflow' || tool === 'kilo') {
                 setActiveTool(tool);
                 const toolCfg = (cfg as any)[tool];
                 if (toolCfg && toolCfg.models) {
@@ -1288,13 +1301,13 @@ function App() {
                 await InstallTool("iflow");
             }
 
-            // Add kiro check and installation if missing
-            const kiroStatus = statuses?.find((s: any) => s.name === "kiro");
-            if (kiroStatus && !kiroStatus.installed) {
+            // Add kilo check and installation if missing
+            const kiloStatus = statuses?.find((s: any) => s.name === "kilo");
+            if (kiloStatus && !kiloStatus.installed) {
                 setEnvLogs(prev => [...prev, lang === 'zh-Hans' ? "正在安装 Kilo Code CLI..." :
                     lang === 'zh-Hant' ? "正在安裝 Kilo Code CLI..." :
                         "Installing Kilo Code CLI..."]);
-                await InstallTool("kiro");
+                await InstallTool("kilo");
             }
 
             // Re-check after installation
@@ -1318,7 +1331,7 @@ function App() {
 
     const switchTool = (tool: string) => {
         setNavTab(tool);
-        if (tool === 'claude' || tool === 'gemini' || tool === 'codex' || tool === 'opencode' || tool === 'codebuddy' || tool === 'qoder' || tool === 'iflow' || tool === 'kiro') {
+        if (tool === 'claude' || tool === 'gemini' || tool === 'codex' || tool === 'opencode' || tool === 'codebuddy' || tool === 'qoder' || tool === 'iflow' || tool === 'kilo') {
             setActiveTool(tool);
             setActiveTab(0); // Reset to Original when switching tools
         }
@@ -1404,7 +1417,7 @@ function App() {
 
         // Skip syncing for "Original" model and custom models
         if (providerPrefix !== "Original" && !isCurrentCustom) {
-            const tools = ['claude', 'gemini', 'codex', 'opencode', 'codebuddy', 'qoder', 'iflow', 'kiro'];
+            const tools = ['claude', 'gemini', 'codex', 'opencode', 'codebuddy', 'qoder', 'iflow', 'kilo'];
             let syncCount = 0;
 
             tools.forEach(tool => {
@@ -1520,7 +1533,7 @@ function App() {
             if (p.includes("doubao")) return "doubao-seed-code-preview-latest";
             if (p.includes("kimi")) return "kimi-for-coding";
             if (p.includes("minimax")) return "MiniMax-M2.1";
-        } else if (tool === "opencode" || tool === "codebuddy" || tool === "qoder" || tool === "iflow" || tool === "kiro") {
+        } else if (tool === "opencode" || tool === "codebuddy" || tool === "qoder" || tool === "iflow" || tool === "kilo") {
             if (p.includes("deepseek")) return "deepseek-chat";
             if (p.includes("glm")) return "glm-4.7";
             if (p.includes("doubao")) return "doubao-seed-code-preview-latest";
@@ -1834,7 +1847,7 @@ ${instruction}`;
 
     if (!config) return <div className="main-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>{t("loadingConfig")}</div>;
 
-    const toolCfg = (navTab === 'claude' || navTab === 'gemini' || navTab === 'codex' || navTab === 'opencode' || navTab === 'codebuddy' || navTab === 'qoder' || navTab === 'iflow' || navTab === 'kiro')
+    const toolCfg = (navTab === 'claude' || navTab === 'gemini' || navTab === 'codex' || navTab === 'opencode' || navTab === 'codebuddy' || navTab === 'qoder' || navTab === 'iflow' || navTab === 'kilo')
         ? (config as any)[navTab]
         : null;
 
@@ -1980,10 +1993,10 @@ ${instruction}`;
                                 </span> <span>iFlow CLI</span>
                             </div>
                         )}
-                        {config?.show_kiro !== false && (
-                            <div className={`sidebar-item ${navTab === 'kiro' ? 'active' : ''}`} onClick={() => switchTool('kiro')}>
+                        {config?.show_kilo !== false && (
+                            <div className={`sidebar-item ${navTab === 'kilo' ? 'active' : ''}`} onClick={() => switchTool('kilo')}>
                                 <span className="sidebar-icon">
-                                    <img src={kiroIcon} style={{ width: '1.1em', height: '1.1em', verticalAlign: 'middle' }} alt="Kilo Code" />
+                                    <img src={kiloIcon} style={{ width: '1.1em', height: '1.1em', verticalAlign: 'middle' }} alt="Kilo Code" />
                                 </span> <span>Kilo Code</span>
                             </div>
                         )}
@@ -2011,7 +2024,7 @@ ${instruction}`;
                                                     navTab === 'codebuddy' ? 'CodeBuddy AI' :
                                                         navTab === 'qoder' ? 'Qoder CLI' :
                                                             navTab === 'iflow' ? 'iFlow CLI' :
-                                                                navTab === 'kiro' ? 'Kilo Code CLI' :
+                                                                navTab === 'kilo' ? 'Kilo Code CLI' :
                                                                     navTab === 'projects' ? t("projectManagement") :
                                                                     navTab === 'skills' ? t("skills") :
                                                                         navTab === 'tutorial' ? t("tutorial") :
@@ -2077,7 +2090,7 @@ ${instruction}`;
                                     {t("refreshMessage")}
                                 </button>
                             )}
-                            {(navTab === 'claude' || navTab === 'gemini' || navTab === 'codex' || navTab === 'opencode' || navTab === 'codebuddy' || navTab === 'qoder' || navTab === 'iflow' || navTab === 'kiro') && (
+                            {(navTab === 'claude' || navTab === 'gemini' || navTab === 'codex' || navTab === 'opencode' || navTab === 'codebuddy' || navTab === 'qoder' || navTab === 'iflow' || navTab === 'kilo') && (
                                 <>
                                     <button
                                         className="btn-link"
@@ -2660,7 +2673,7 @@ ${instruction}`;
                             )}
                         </div>
                     )}
-                    {(navTab === 'claude' || navTab === 'gemini' || navTab === 'codex' || navTab === 'opencode' || navTab === 'codebuddy' || navTab === 'qoder' || navTab === 'iflow' || navTab === 'kiro') && (
+                    {(navTab === 'claude' || navTab === 'gemini' || navTab === 'codex' || navTab === 'opencode' || navTab === 'codebuddy' || navTab === 'qoder' || navTab === 'iflow' || navTab === 'kilo') && (
                         <ToolConfiguration
                             toolName={navTab}
                             toolCfg={toolCfg}
@@ -2880,10 +2893,10 @@ ${instruction}`;
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                                         <input
                                             type="checkbox"
-                                            checked={config?.show_kiro !== false}
+                                            checked={config?.show_kilo !== false}
                                             onChange={(e) => {
                                                 if (config) {
-                                                    const newConfig = new main.AppConfig({ ...config, show_kiro: e.target.checked });
+                                                    const newConfig = new main.AppConfig({ ...config, show_kilo: e.target.checked });
                                                     setConfig(newConfig);
                                                     SaveConfig(newConfig);
                                                 }
@@ -3067,7 +3080,7 @@ ${instruction}`;
                 </div>
 
                 {/* Global Action Bar (Footer) */}
-                {config && (navTab === 'claude' || navTab === 'gemini' || navTab === 'codex' || navTab === 'opencode' || navTab === 'codebuddy' || navTab === 'qoder' || navTab === 'iflow' || navTab === 'kiro') && (
+                {config && (navTab === 'claude' || navTab === 'gemini' || navTab === 'codex' || navTab === 'opencode' || navTab === 'codebuddy' || navTab === 'qoder' || navTab === 'iflow' || navTab === 'kilo') && (
                     <div className="global-action-bar">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', width: '100%', padding: '2px 0' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'flex-start' }}>
@@ -3085,7 +3098,7 @@ ${instruction}`;
                                         })()}
                                     </span>
                                 </div>
-                                {activeTool !== 'kiro' && (
+                                {activeTool !== 'kilo' && (
                                     <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.8rem', color: '#6b7280' }}>
                                         <input
                                             type="checkbox"

@@ -136,7 +136,8 @@ func (a *App) CheckEnvironment(force bool) {
 
 		// 5. Check AI Tools
 		tm := NewToolManager(a)
-		tools := []string{"claude", "gemini", "codex", "opencode", "codebuddy", "qoder", "iflow", "kiro"}
+		// Install kilo first, then other tools
+	tools := []string{"kilo", "claude", "gemini", "codex", "opencode", "codebuddy", "qoder", "iflow"}
 
 		for _, tool := range tools {
 			a.log(a.tr("Checking %s...", tool))
@@ -152,7 +153,7 @@ func (a *App) CheckEnvironment(force bool) {
 			} else {
 				a.log(a.tr("%s found at %s (version: %s).", tool, status.Path, status.Version))
 				
-				if tool == "codex" || tool == "opencode" || tool == "codebuddy" || tool == "qoder" || tool == "iflow" || tool == "gemini" || tool == "claude" || tool == "kiro" {
+				if tool == "codex" || tool == "opencode" || tool == "codebuddy" || tool == "qoder" || tool == "iflow" || tool == "gemini" || tool == "claude" || tool == "kilo" {
 					a.log(a.tr("Checking for %s updates...", tool))
 					latest, err := a.getLatestNpmVersion(npmPath, tm.GetPackageName(tool))
 					if err == nil && latest != "" && latest != status.Version {

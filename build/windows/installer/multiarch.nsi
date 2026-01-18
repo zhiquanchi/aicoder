@@ -100,6 +100,10 @@ Section
     # Install other assets if any (e.g., from wails.json assets or specific files)
     # File "..\..\frontend\dist\..." # Frontend is embedded in binary
 
+    # Enable Windows Long Path Support (required for npm cache and AI tools)
+    DetailPrint "Enabling Windows Long Path Support..."
+    WriteRegDWORD HKLM "SYSTEM\CurrentControlSet\Control\FileSystem" "LongPathsEnabled" 1
+
     # Create Shortcuts
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
