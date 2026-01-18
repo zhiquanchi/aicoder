@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
 
 type ToolStatus struct {
@@ -27,6 +28,8 @@ func NewToolManager(app *App) *ToolManager {
 func (tm *ToolManager) GetToolStatus(name string) ToolStatus {
 	status := ToolStatus{Name: name}
 
+	tm.app.log(fmt.Sprintf("GetToolStatus: Checking tool '%s'", name))
+
 	binaryNames := []string{name}
 	if name == "codex" {
 		binaryNames = append(binaryNames, "openai")
@@ -43,6 +46,11 @@ func (tm *ToolManager) GetToolStatus(name string) ToolStatus {
 	if name == "iflow" {
 		binaryNames = []string{"iflow"}
 	}
+	if name == "kilo" {
+		binaryNames = []string{"kilo", "kilocode"}
+	}
+
+	tm.app.log(fmt.Sprintf("GetToolStatus: Looking for binary names: %v", binaryNames))
 
 	var path string
 
@@ -96,9 +104,11 @@ func (tm *ToolManager) GetToolStatus(name string) ToolStatus {
 	}
 
 	if path == "" {
+		tm.app.log(fmt.Sprintf("GetToolStatus: Tool '%s' NOT found", name))
 		return status
 	}
 
+	tm.app.log(fmt.Sprintf("GetToolStatus: Tool '%s' found at: %s", name, path))
 	status.Installed = true
 	status.Path = path
 
@@ -149,28 +159,41 @@ func (tm *ToolManager) InstallTool(name string) error {
 		return fmt.Errorf("failed to create local node directory: %w", err)
 	}
 
-	var packageName string
-	switch name {
-	case "claude":
-		packageName = "@anthropic-ai/claude-code"
-	case "gemini":
-		packageName = "@google/gemini-cli"
-	case "codex":
-		packageName = "@openai/codex"
-	case "opencode":
-		if runtime.GOOS == "windows" {
-			packageName = "opencode-windows-x64"
-		} else {
-			packageName = "opencode-ai"
-		}
-	case "codebuddy":
-		packageName = "@tencent-ai/codebuddy-code"
-	case "qoder":
-		packageName = "@qoder-ai/qodercli"
-	case "iflow":
-		packageName = "@iflow-ai/iflow-cli"
-	default:
+	// Get package name
+	packageName := tm.GetPackageName(name)
+	if packageName == "" {
 		return fmt.Errorf("unknown tool: %s", name)
+	}
+
+	// Pre-clean: Remove existing installation if present to avoid ENOTEMPTY errors on Windows
+	pkgDir := filepath.Join(localNodeDir, "node_modules", packageName)
+	if _, err := os.Stat(pkgDir); err == nil {
+		tm.app.log(tm.app.tr("Removing existing %s installation to ensure clean install...", name))
+		// Remove wrapper scripts first
+		if runtime.GOOS == "windows" {
+			wrappers := []string{
+				filepath.Join(localNodeDir, name+".cmd"),
+				filepath.Join(localNodeDir, name+".ps1"),
+				filepath.Join(localNodeDir, name),
+			}
+			for _, wrapper := range wrappers {
+				os.Remove(wrapper) // Best effort
+			}
+		}
+		// Remove package directory with retry for locked files
+		for i := 0; i < 3; i++ {
+			err = os.RemoveAll(pkgDir)
+			if err == nil {
+				break
+			}
+			if i < 2 {
+				tm.app.log(tm.app.tr("Retry removing directory (attempt %d/3)...", i+2))
+				time.Sleep(time.Second)
+			}
+		}
+		if err != nil {
+			tm.app.log(tm.app.tr("Warning: Failed to completely remove old installation: %v", err))
+		}
 	}
 
 	// Use --prefix to install to our local folder, avoiding sudo/permission issues
@@ -209,6 +232,14 @@ func (tm *ToolManager) InstallTool(name string) error {
 	args = append(args, packages...)
 	args = append(args, "--prefix", localNodeDir, "--cache", localCacheDir, "--loglevel", "info")
 
+	// Use --force to avoid ENOTEMPTY and other file lock issues on Windows
+	args = append(args, "--force")
+
+	// Skip postinstall scripts for iflow due to missing postinstall-ripgrep.js
+	if name == "iflow" {
+		args = append(args, "--ignore-scripts")
+	}
+
 	if strings.HasPrefix(strings.ToLower(tm.app.CurrentLanguage), "zh") {
 		args = append(args, "--registry=https://registry.npmmirror.com")
 	}
@@ -241,10 +272,20 @@ func (tm *ToolManager) InstallTool(name string) error {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		outputStr := string(out)
-		// Check for cache permission issues
+		// Check for specific npm errors
+		needsRetry := false
 		if strings.Contains(outputStr, "EACCES") || strings.Contains(outputStr, "EEXIST") {
 			tm.app.log(tm.app.tr("Detected npm cache permission issue. Attempting to clear cache..."))
+			needsRetry = true
+		} else if strings.Contains(outputStr, "ENOTEMPTY") {
+			tm.app.log(tm.app.tr("Detected ENOTEMPTY error (file lock issue). Will retry with cleanup..."))
+			// Clean up the problematic directory more aggressively
+			time.Sleep(2 * time.Second) // Wait for file locks to release
+			os.RemoveAll(pkgDir) // Try to remove again
+			needsRetry = true
+		}
 
+		if needsRetry {
 			// Try to clean cache
 			cleanArgs := []string{"cache", "clean", "--force", "--cache", localCacheDir}
 			if strings.HasPrefix(strings.ToLower(tm.app.CurrentLanguage), "zh") {
@@ -255,7 +296,7 @@ func (tm *ToolManager) InstallTool(name string) error {
 			cleanCmd.Env = env
 			cleanCmd.CombinedOutput() // Ignore error on clean
 
-			tm.app.log(tm.app.tr("Retrying installation after cache clean..."))
+			tm.app.log(tm.app.tr("Retrying installation after cleanup..."))
 			// Retry installation
 			cmd = createNpmInstallCmd(npmPath, args)
 			cmd.Env = env
@@ -263,66 +304,70 @@ func (tm *ToolManager) InstallTool(name string) error {
 			if err != nil {
 				return fmt.Errorf("failed to install %s (retry): %v\nOutput: %s", name, err, string(out))
 			}
-			return nil
+		} else {
+			return fmt.Errorf("failed to install %s: %v\nOutput: %s", name, err, string(out))
 		}
-
-		return fmt.Errorf("failed to install %s: %v\nOutput: %s", name, err, string(out))
 	}
+
+	// Post-installation verification
+	tm.app.log(tm.app.tr("Verifying %s installation...", name))
+	time.Sleep(500 * time.Millisecond) // Brief wait for file system sync
+
+	status := tm.GetToolStatus(name)
+	if !status.Installed {
+		return fmt.Errorf("installation completed but tool verification failed - %s not found", name)
+	}
+
+	tm.app.log(tm.app.tr("✓ %s installed and verified successfully (version: %s)", name, status.Version))
 	return nil
 }
 
 func (tm *ToolManager) UpdateTool(name string) error {
-	var cmd *exec.Cmd
-
-	switch name {
-	case "codebuddy", "claude", "qoder":
-		status := tm.GetToolStatus(name)
-		if !status.Installed {
-			return fmt.Errorf("tool %s is not installed", name)
-		}
-
-		// ONLY update private version in ~/.cceasy, do NOT update system version
-		// Verify the tool is installed in our private directory
-		home, _ := os.UserHomeDir()
-		expectedPrefix := filepath.Join(home, ".cceasy", "tools")
-		if !strings.HasPrefix(status.Path, expectedPrefix) {
-			return fmt.Errorf("tool %s is not installed in private directory (%s), cannot update", name, status.Path)
-		}
-
-		cmd = createUpdateCmd(status.Path)
-
-		// Set up environment variables with proper PATH
-		localNodeDir := filepath.Join(home, ".cceasy", "tools")
-		localBinDir := filepath.Join(localNodeDir, "bin")
-
-		env := os.Environ()
-		pathFound := false
-		for i, e := range env {
-			if strings.HasPrefix(strings.ToUpper(e), "PATH=") {
-				env[i] = fmt.Sprintf("PATH=%s%c%s", localBinDir, os.PathListSeparator, e[5:])
-				pathFound = true
-				break
-			}
-		}
-		if !pathFound {
-			env = append(env, "PATH="+localBinDir)
-		}
-		cmd.Env = env
-
-	case "iflow":
-		return tm.InstallTool(name)
-
-	default:
-		return tm.InstallTool(name)
+	// Verify the tool is installed in our private directory first
+	status := tm.GetToolStatus(name)
+	if !status.Installed {
+		return fmt.Errorf("tool %s is not installed", name)
 	}
 
-	if cmd != nil {
-		tm.app.log(tm.app.tr("Running update: %s %s", cmd.Path, strings.Join(cmd.Args[1:], " ")))
-		out, err := cmd.CombinedOutput()
+	home, _ := os.UserHomeDir()
+	expectedPrefix := filepath.Join(home, ".cceasy", "tools")
+	if !strings.HasPrefix(status.Path, expectedPrefix) {
+		return fmt.Errorf("tool %s is not installed in private directory (%s), cannot update. Only private installations can be updated.", name, status.Path)
+	}
+
+	// Use npm to update the package in private directory
+	// This avoids calling the tool's own update command which might try to update global installations
+	packageName := tm.GetPackageName(name)
+	if packageName == "" {
+		return fmt.Errorf("unknown package name for tool %s", name)
+	}
+
+	tm.app.log(tm.app.tr("Updating %s in private directory using npm...", name))
+
+	// Find npm
+	npmExec, err := exec.LookPath("npm")
+	if err != nil {
+		npmExec, err = exec.LookPath("npm.cmd")
 		if err != nil {
-			return fmt.Errorf("failed to update %s: %v\nOutput: %s", name, err, string(out))
+			return fmt.Errorf("npm not found")
 		}
 	}
+
+	// Set up npm prefix to private directory
+	localToolsDir := filepath.Join(home, ".cceasy", "tools")
+
+	// Use npm install with latest version to update
+	args := []string{"install", "-g", "--prefix", localToolsDir, packageName + "@latest"}
+
+	cmd := createNpmInstallCmd(npmExec, args)
+
+	tm.app.log(tm.app.tr("Running: npm %s", strings.Join(args, " ")))
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to update %s: %v\nOutput: %s", name, err, string(out))
+	}
+
+	tm.app.log(tm.app.tr("Successfully updated %s in private directory", name))
 	return nil
 }
 
@@ -345,6 +390,8 @@ func (tm *ToolManager) GetPackageName(name string) string {
 		return "@qoder-ai/qodercli"
 	case "iflow":
 		return "@iflow-ai/iflow-cli"
+	case "kilo":
+		return "@kilocode/cli"
 	default:
 		return ""
 	}
@@ -385,7 +432,8 @@ func (a *App) UpdateTool(name string) error {
 
 func (a *App) CheckToolsStatus() []ToolStatus {
 	tm := NewToolManager(a)
-	tools := []string{"claude", "gemini", "codex", "opencode", "codebuddy", "qoder", "iflow"}
+	// Check kilo first, then other tools
+	tools := []string{"kilo", "claude", "gemini", "codex", "opencode", "codebuddy", "qoder", "iflow"}
 	statuses := make([]ToolStatus, len(tools))
 	for i, name := range tools {
 		statuses[i] = tm.GetToolStatus(name)

@@ -13,20 +13,21 @@ This application is deeply integrated with popular AI programming models, suppor
 
 *   **🚀 Automatic Environment Preparation**: Automatically detects and prepares the required AI CLI environments (Claude Code, Codex, Gemini, OpenCode, CodeBuddy, Qoder CLI) upon startup, supporting automatic installation and version updates.
 *   **🖼️ Unified Sidebar UI**: Features a modern vertical sidebar navigation for quick switching between different AI programming tools.
+*   **📢 Message Center (BBS)**: Integrated real-time announcements to keep you updated with the latest tool news, tips, and community announcements.
+*   **📚 Interactive Tutorial**: Built-in beginner and advanced guides presented via interactive Markdown to help you master AI programming tools quickly.
+*   **🛒 API Store**: Curated list of high-quality API providers accessible with one click to easily resolve model access challenges.
+*   **🛠️ Unified Skill Management**:
+    *   **Global Skill Repository**: Supports both **Skill ID (Address)** and **Zip Package** formats. Zip skills are added once and shared across all tools.
+    *   **Smart Compatibility Check**: Automatically identifies tool capabilities; Gemini/Codex only display and allow installation of Zip skills.
+    *   **Built-in System Skills**: Pre-configured official documentation and common toolsets for out-of-the-box use.
 *   **📂 Multi-Project Management (Vibe Coding)**：
     *   **Tabbed Interface**: Manage multiple projects simultaneously and switch contexts quickly using tabs.
     *   **Independent Configuration**: Each project can have its own working directory and launch parameters (e.g., Yolo Mode).
     *   **Python Environment Support**: Deeply integrated with Conda/Anaconda, allowing independent Python environments for different projects.
-    *   **Admin Launch**: Supports launching tools with admin privileges on Windows to resolve permission issues.
 *   **🔄 Multi-Model & Cross-Platform Support**:
     *   Integrated with **Claude Code**, **OpenAI Codex**, **Google Gemini CLI**, **OpenCode**, **CodeBuddy**, and **Qoder CLI**.
-    *   **"Original" Provider Mode**: One-click switch back to official configurations. Automatically clears custom proxy settings to ensure a pure official tool experience.
-    *   **Deep Provider Integration**: Pre-configured support for mainstream providers including GLM, Kimi, Doubao, MiniMax, AIgoCode, and AiCodeMirror.
+    *   **"Original" Mode**: One-click switch back to official configurations to ensure a pure tool experience.
     *   **Smart Sync**: API Keys for the same provider are automatically synchronized across different tools.
-    *   **Custom Mode**: Connect to any compatible API endpoint.
-*   **📢 Real-time Announcements (BBS)**: Built-in message center to stay updated with the latest tool news and community announcements.
-*   **🛠️ One-Click Repair**: Provides configuration reset and repair functionality for tools like Claude Code to resolve environment conflicts.
-*   **🌍 Multi-language Support**: Interface supports English, Simplified Chinese, and Traditional Chinese.
 *   **🖱️ System Tray Support**: Quick model switching, one-click launch, and quitting the application.
 *   **⚡ One-Click Launch**: Large buttons to launch the respective CLI tool with pre-configured environments and authentication.
 
@@ -50,7 +51,7 @@ Select a provider and enter your API Key in the configuration panel for each too
 
 ## About
 
-*   **Version**: V2.6.2.2200
+*   **Version**: V3.5.0.5000
 *   **Author**: Dr. Daniel
 *   **GitHub**: [RapidAI/aicoder](https://github.com/RapidAI/aicoder)
 *   **Resources**: [CS146s Chinese Version](https://github.com/BIT-ENGD/cs146s_cn)

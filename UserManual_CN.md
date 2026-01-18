@@ -20,6 +20,16 @@ AICoder 采用垂直侧边栏设计，您可以轻松切换不同的 AI 工具�
 *   **OpenCode**：配置和启动 OpenCode AI 辅助工具。
 *   **CodeBuddy**：配置和启动 CodeBuddy 编程助手。
 *   **Qoder**：配置和启动 Qoder CLI 编程助手。
+*   **技能 (Skills)**：管理 AI 编程助手的扩展能力（技能）。
+
+## 2.5 技能管理 (Skills)
+点击侧边栏下方的 **技能 (🛠️)** 图标进入技能管理界面：
+1.  **添加技能**：支持两种方式。
+    *   **Skill ID (Address)**：输入技能 ID（如 `@org/skill`）。仅 Claude 支持此类技能。
+    *   **Zip 包**：选择本地 `.zip` 格式的技能包。所有工具（Claude, Gemini, Codex）均支持。
+2.  **技能共享**：添加的 Zip 技能会自动存储在全局仓库中，所有工具均可访问。
+3.  **兼容性提示**：如果在 Gemini 或 Codex 中尝试安装不支持的 Address 技能，系统会提示错误。
+4.  **系统技能**：内置官方文档等默认技能，方便随时查阅。
 
 ## 3. 模型配置 (Model Settings)
 在每个工具的面板中，您需要配置相应的 API Key。

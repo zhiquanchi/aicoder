@@ -20,6 +20,16 @@ AICoder features a vertical sidebar design, allowing you to easily switch betwee
 *   **OpenCode**: Configure and launch OpenCode AI assistance tools.
 *   **CodeBuddy**: Configure and launch CodeBuddy programming assistant.
 *   **Qoder**: Configure and launch Qoder CLI programming assistant.
+*   **Skills**: Manage extensions (skills) for AI programming assistants.
+
+## 2.5 Skills Management
+Click the **Skills (🛠️)** icon at the bottom of the sidebar to enter the skills management interface:
+1.  **Add Skill**: Two methods are supported.
+    *   **Skill ID (Address)**: Enter a skill ID (e.g., `@org/skill`). Only supported by Claude.
+    *   **Zip Package**: Select a local `.zip` file. Supported by all tools (Claude, Gemini, Codex).
+2.  **Shared Skills**: Added Zip skills are automatically stored in a global repository and are accessible by all tools.
+3.  **Compatibility Check**: If you try to install an unsupported Address skill in Gemini or Codex, the system will show an error.
+4.  **System Skills**: Built-in official documentation and other default skills are available for reference.
 
 ## 3. Model Settings
 Within each tool's panel, you need to configure the corresponding API Key.
