@@ -58,14 +58,12 @@ func (a *App) CheckEnvironment(force bool) {
 			}
 		}
 
-		a.log(a.tr("Checking Node.js installation..."))
-
-		home, _ := os.UserHomeDir()
+		home, _ = os.UserHomeDir()
 		localNodeDir := filepath.Join(home, ".cceasy", "tools")
 		localBinDir := filepath.Join(localNodeDir, "bin")
 
 		// 1. Setup PATH
-	envPath := os.Getenv("PATH")
+	var envPath = os.Getenv("PATH")
 		commonPaths := []string{"/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"}
 		commonPaths = append([]string{localBinDir}, commonPaths...)
 
@@ -297,4 +295,42 @@ os.WriteFile(scriptPath, []byte(scriptContent), 0755)
 }
 
 func (a *App) syncToSystemEnv(config AppConfig) {
+}
+
+func (a *App) LaunchInstallerAndExit(installerPath string) error {
+	cmd := exec.Command("open", installerPath)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	wails_runtime.Quit(a.ctx)
+	return nil
+}
+
+func contains(slice []string, item string) bool {
+    for _, s := range slice {
+        if s == item {
+            return true
+        }
+    }
+    return false
+}
+
+func createVersionCmd(path string) *exec.Cmd {
+    return exec.Command(path, "--version")
+}
+
+func createNpmInstallCmd(npmPath string, args []string) *exec.Cmd {
+    return exec.Command(npmPath, args...)
+}
+
+func createCondaEnvListCmd(condaPath string) *exec.Cmd {
+    return exec.Command(condaPath, "env", "list")
+}
+
+func getWindowsVersionHidden() string {
+    return ""
+}
+
+func createHiddenCmd(name string, args ...string) *exec.Cmd {
+    return exec.Command(name, args...)
 }

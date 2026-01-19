@@ -315,7 +315,7 @@ func (a *App) platformLaunch(binaryName string, yoloMode bool, adminMode bool, p
 	scriptContent += fmt.Sprintf("\"%s\" %s\n", status.Path, strings.Join(cmdArgs, " "))
 	scriptContent += "echo 'Press Enter to close...\nread\n"
 	
-os.WriteFile(scriptPath, []byte(scriptContent), 0755)
+	os.WriteFile(scriptPath, []byte(scriptContent), 0755)
 	
 	// Try to open terminal
 	terminals := []string{"x-terminal-emulator", "gnome-terminal", "konsole", "xterm"}
@@ -356,3 +356,22 @@ func createHiddenCmd(name string, args ...string) *exec.Cmd {
 }
 
 func createNpmInstallCmd(npmPath string, args []string) *exec.Cmd {
+	return exec.Command(npmPath, args...)
+}
+
+func (a *App) LaunchInstallerAndExit(installerPath string) error {
+	cmd := exec.Command("xdg-open", installerPath)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	wails_runtime.Quit(a.ctx)
+	return nil
+}
+
+func createCondaEnvListCmd(condaPath string) *exec.Cmd {
+	return exec.Command(condaPath, "env", "list")
+}
+
+func getWindowsVersionHidden() string {
+	return ""
+}

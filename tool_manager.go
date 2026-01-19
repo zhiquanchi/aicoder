@@ -31,6 +31,9 @@ func (tm *ToolManager) GetToolStatus(name string) ToolStatus {
 	tm.app.log(fmt.Sprintf("GetToolStatus: Checking tool '%s'", name))
 
 	binaryNames := []string{name}
+	if name == "claude" {
+		binaryNames = append(binaryNames, "claude-code")
+	}
 	if name == "codex" {
 		binaryNames = append(binaryNames, "openai")
 	}
@@ -95,6 +98,14 @@ func (tm *ToolManager) GetToolStatus(name string) ToolStatus {
 			localBin := filepath.Join(home, ".cceasy", "tools", "bin", bn)
 			if _, err := os.Stat(localBin); err == nil {
 				path = localBin
+			} else {
+				// Fallback: Check node_modules bin directly
+				if pkgName := tm.GetPackageName(name); pkgName != "" {
+					modBin := filepath.Join(home, ".cceasy", "tools", "node_modules", pkgName, "bin", bn)
+					if _, err := os.Stat(modBin); err == nil {
+						path = modBin
+					}
+				}
 			}
 		}
 
