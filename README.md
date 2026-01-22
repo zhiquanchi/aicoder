@@ -37,6 +37,16 @@ AICoder 是一款基于 Wails + Go + React 开发的桌面 AI 编程辅助工具
 ### 1. 运行程序
 直接运行 `AICoder.exe` (Windows) 或 `AICoder.app` (macOS)。
 
+**Linux TUI 模式**：在 Linux 系统上，可以使用终端界面（TUI）模式运行：
+```bash
+./AICoder --tui
+```
+TUI 模式提供了一个轻量级的命令行界面，可以：
+- 查看 AI 工具安装状态
+- 配置 API Keys
+- 管理项目
+- 启动 AI 工具
+
 ### 2. 环境检测
 程序首次启动会进行环境自检。如果您的电脑未安装所需的运行环境（如 Node.js），程序会尝试自动安装/更新相关组件。
 
