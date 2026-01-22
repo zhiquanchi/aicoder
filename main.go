@@ -1,7 +1,9 @@
 package main
 
 import (
+	"claude-config-manager/tui"
 	"embed"
+	"fmt"
 	"os"
 
 	"github.com/wailsapp/wails/v2"
@@ -26,7 +28,14 @@ func main() {
 		for _, arg := range args[1:] {
 			if arg == "init" {
 				app.IsInitMode = true
-				break
+			}
+			if arg == "--tui" || arg == "-tui" {
+				// Launch TUI mode
+				if err := tui.RunTUI(); err != nil {
+					fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
+					os.Exit(1)
+				}
+				return
 			}
 		}
 	}

@@ -61,12 +61,12 @@ func (a *App) CheckEnvironment(force bool) {
 
 		a.log(a.tr("Checking Node.js installation..."))
 
-		home, _ := os.UserHomeDir()
+		home = a.GetUserHomeDir()
 		localNodeDir := filepath.Join(home, ".cceasy", "tools")
 		localBinDir := filepath.Join(localNodeDir, "bin")
 
 		// 1. Setup PATH
-	envPath := os.Getenv("PATH")
+		envPath := os.Getenv("PATH")
 		commonPaths := []string{"/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"}
 
 		// Add local node bin to PATH
@@ -374,4 +374,8 @@ func createCondaEnvListCmd(condaPath string) *exec.Cmd {
 
 func getWindowsVersionHidden() string {
 	return ""
+}
+
+func (a *App) syncToSystemEnv(config AppConfig) {
+	// Empty implementation for Linux - no system-wide sync needed
 }
