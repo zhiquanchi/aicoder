@@ -36,6 +36,16 @@ This application is deeply integrated with popular AI programming models, suppor
 ### 1. Run the Program
 Run `AICoder.exe` (Windows) or `AICoder.app` (macOS) directly.
 
+**Linux TUI Mode**: On Linux, you can use the Terminal User Interface (TUI) mode:
+```bash
+./AICoder --tui
+```
+TUI mode provides a lightweight command-line interface to:
+- View AI tool installation status
+- Configure API Keys
+- Manage projects
+- Launch AI tools
+
 ### 2. Environment Detection
 On the first launch, the program performs an environment self-check. If required runtimes (e.g., Node.js) are missing, AICoder will attempt to install them automatically.
 
